@@ -47,6 +47,9 @@ public class Cut : MonoBehaviour
                 // Log the transition with the adjusted transition point
                 Debug.LogFormat("Transition from Triangle {0} to Triangle {1} at Position: {2:0.000}",
                     previousTriangleID, currentTriangleID, transitionPoint);
+                exit = transitionPoint;
+                //getCut(entry, exit);
+                entry = transitionPoint;
                 
             }
         }
