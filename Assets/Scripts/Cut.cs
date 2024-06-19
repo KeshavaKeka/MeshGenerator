@@ -122,7 +122,21 @@ public class Cut : MonoBehaviour
             getCut(exitTriangleID, entry, exit);
         }
     }
+    Vector3[] GetTriangleVertices(int triangleID)
+    {
+        if (triangleID < 0 || triangleID >= triangles.Count / 3)
+        {
+            Debug.LogError("Invalid triangle ID");
+            return null;
+        }
 
+        int index = triangleID * 3;
+        Vector3 v0 = vertices[triangles[index]];
+        Vector3 v1 = vertices[triangles[index + 1]];
+        Vector3 v2 = vertices[triangles[index + 2]];
+
+        return new Vector3[] { v0, v1, v2 };
+    }
     int GetTriangleID(Vector3 point)
     {
         for (int i = 0; i < triangles.Count; i += 3)
@@ -235,7 +249,8 @@ public class Cut : MonoBehaviour
     {
         if (entOnEdge == true && exitOnEdge == true)
         {
-            Debug.Log("2");
+            Vector3[] triangleVertices = GetTriangleVertices(id);
+
         }
         else if (entOnEdge == false && exitOnEdge == false)
         {
