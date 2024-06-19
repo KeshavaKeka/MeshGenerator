@@ -6,9 +6,11 @@ using UnityEngine;
 public class Cut : MonoBehaviour
 {
     Mesh mesh;
-    Vector3[] vertices;
-    int[] triangles;
+    List<Vector3> vertices;
+    List<int> triangles;
 
+    bool entOnEdge = false;
+    bool exitOnEdge = false;
     Vector3 entry;
     Vector3 exit;
     Vector3 currentPosition;
@@ -32,13 +34,11 @@ public class Cut : MonoBehaviour
 
     void Update()
     {
-        // Continuously check the object's position and detect triangle transitions
         if (currentPosition != null)
         {
             previousTriangleID = currentTriangleID;
             currentTriangleID = GetTriangleID(currentPosition);
 
-            // Log the transition if the triangle has changed
             if (previousTriangleID != -1 && currentTriangleID != previousTriangleID)
             {
                 // Calculate the actual transition point
@@ -48,9 +48,10 @@ public class Cut : MonoBehaviour
                 Debug.LogFormat("Transition from Triangle {0} to Triangle {1} at Position: {2:0.000}",
                     previousTriangleID, currentTriangleID, transitionPoint);
                 exit = transitionPoint;
-                //getCut(entry, exit);
+                exitOnEdge = true;
+                getCut(previousTriangleID, entry, exit);
                 entry = transitionPoint;
-                
+                entOnEdge = true;
             }
         }
     }
@@ -58,7 +59,7 @@ public class Cut : MonoBehaviour
     void CreateShape()
     {
         // Define the vertices of the shape
-        vertices = new Vector3[] {
+        vertices = new List<Vector3> {
             new Vector3(1, 0, 0),
             new Vector3(0, 0, 1),
             new Vector3(-1, 0, 0),
@@ -66,7 +67,7 @@ public class Cut : MonoBehaviour
         };
 
         // Define the triangles that make up the shape
-        triangles = new int[]{
+        triangles = new List<int> {
             0, 3, 2,
             0, 2, 1
         };
@@ -75,8 +76,8 @@ public class Cut : MonoBehaviour
     void UpdateMesh()
     {
         mesh.Clear();
-        mesh.vertices = vertices;
-        mesh.triangles = triangles;
+        mesh.vertices = vertices.ToArray();
+        mesh.triangles = triangles.ToArray();
         mesh.RecalculateNormals();
     }
 
@@ -87,15 +88,12 @@ public class Cut : MonoBehaviour
         if (contactPoint != null)
         {
             entry = new Vector3(contactPoint.position.x, 0, contactPoint.position.z);
+            entOnEdge = false;
             Debug.LogFormat("Entry: {0:0.000}", entry);
 
             // Determine and log the initial triangle ID for the entry point
             previousTriangleID = GetTriangleID(entry);
             currentTriangleID = previousTriangleID;
-            if (previousTriangleID != -1)
-            {
-                Debug.LogFormat("Entry Point in Triangle ID {0} - Coordinates: {1:0.000}", previousTriangleID, entry);
-            }
         }
     }
 
@@ -116,20 +114,18 @@ public class Cut : MonoBehaviour
         if (contactPoint != null)
         {
             exit = new Vector3(contactPoint.position.x, 0, contactPoint.position.z);
+            exitOnEdge = false;
             Debug.LogFormat("Exit: {0:0.000}", exit);
 
             // Determine and log the final triangle ID for the exit point
             int exitTriangleID = GetTriangleID(exit);
-            if (exitTriangleID != -1)
-            {
-                Debug.LogFormat("Exit Point in Triangle ID {0} - Coordinates: {1:0.000}", exitTriangleID, exit);
-            }
+            getCut(exitTriangleID, entry, exit);
         }
     }
 
     int GetTriangleID(Vector3 point)
     {
-        for (int i = 0; i < triangles.Length; i += 3)
+        for (int i = 0; i < triangles.Count; i += 3)
         {
             int triangleID = i / 3;
             Vector3 v0 = vertices[triangles[i]];
@@ -233,5 +229,21 @@ public class Cut : MonoBehaviour
         projectionLength = Mathf.Clamp(projectionLength, 0, Vector3.Distance(lineStart, lineEnd));
 
         return lineStart + lineDirection * projectionLength;
+    }
+
+    void getCut(int id, Vector3 entry, Vector3 exit)
+    {
+        if (entOnEdge == true && exitOnEdge == true)
+        {
+            Debug.Log("2");
+        }
+        else if (entOnEdge == false && exitOnEdge == false)
+        {
+            Debug.Log("0");
+        }
+        else
+        {
+            Debug.Log("1");
+        }
     }
 }
