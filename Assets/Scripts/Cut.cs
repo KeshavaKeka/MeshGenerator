@@ -1,8 +1,31 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 [RequireComponent(typeof(MeshFilter))]
+
+public class Vertex
+{
+    public Vector3 position;
+
+    public Vertex(Vector3 pos)
+    {
+        this.position = pos;
+    }
+}
+
+public class Triangle
+{
+    public Vertex v0, v1, v2;
+
+    public Triangle(Vertex v0, Vertex v1, Vertex v2)
+    {
+        this.v0 = v0;
+        this.v1 = v1;
+        this.v2 = v2;
+    }
+}
 public class Cut : MonoBehaviour
 {
     Mesh mesh;
@@ -126,7 +149,7 @@ public class Cut : MonoBehaviour
     {
         if (triangleID < 0 || triangleID >= triangles.Count / 3)
         {
-            Debug.LogError("Invalid triangle ID");
+            Debug.LogError("Invalid triangle ID:"+triangleID);
             return null;
         }
 
@@ -247,18 +270,89 @@ public class Cut : MonoBehaviour
 
     void getCut(int id, Vector3 entry, Vector3 exit)
     {
-        if (entOnEdge == true && exitOnEdge == true)
-        {
-            Vector3[] triangleVertices = GetTriangleVertices(id);
+        // Get the vertices of the specified triangle
+        Vector3[] triangleVertices = GetTriangleVertices(id);
 
-        }
-        else if (entOnEdge == false && exitOnEdge == false)
-        {
-            Debug.Log("0");
-        }
-        else
-        {
-            Debug.Log("1");
-        }
+        if (triangleVertices == null || triangleVertices.Length != 3) return;
+
+        // Prepare the list of vertices including entry and exit points
+        List<Vertex> verticesToTriangulate = new List<Vertex>
+    {
+        new Vertex(triangleVertices[0]),
+        new Vertex(triangleVertices[1]),
+        new Vertex(triangleVertices[2]),
+        new Vertex(entry),
+        new Vertex(exit)
+    };
+
+        // Triangulate the polygon formed by these points
+        List<Triangle> newTriangles = TriangulatePolygon(verticesToTriangulate);
+
+        // Create a new mesh to render these triangles
+        CreateColoredMesh(newTriangles, new Vector3(0, 2, 0)); // Offset the new mesh position
     }
+
+    List<Triangle> TriangulatePolygon(List<Vertex> points)
+    {
+        List<Triangle> triangles = new List<Triangle>();
+
+        // This method assumes that the polygon is convex
+        for (int i = 2; i < points.Count; i++)
+        {
+            Vertex a = points[0];
+            Vertex b = points[i - 1];
+            Vertex c = points[i];
+
+            triangles.Add(new Triangle(a, b, c));
+        }
+
+        return triangles;
+    }
+
+
+    void CreateColoredMesh(List<Triangle> triangles, Vector3 offset)
+    {
+        GameObject newMeshObject = new GameObject("CutMesh");
+        MeshFilter meshFilter = newMeshObject.AddComponent<MeshFilter>();
+        MeshRenderer meshRenderer = newMeshObject.AddComponent<MeshRenderer>();
+
+        Mesh newMesh = new Mesh();
+        meshFilter.mesh = newMesh;
+
+        List<Vector3> newVertices = new List<Vector3>();
+        List<int> newTriangles = new List<int>();
+        List<Color> colors = new List<Color>();
+
+        int startIndex = 0;
+        foreach (var triangle in triangles)
+        {
+            newVertices.Add(triangle.v0.position + offset);
+            newVertices.Add(triangle.v1.position + offset);
+            newVertices.Add(triangle.v2.position + offset);
+
+            newTriangles.Add(startIndex);
+            newTriangles.Add(startIndex + 1);
+            newTriangles.Add(startIndex + 2);
+
+            // Assign a random color to each triangle
+            Color randomColor = new Color(Random.value, Random.value, Random.value);
+            colors.Add(randomColor);
+            colors.Add(randomColor);
+            colors.Add(randomColor);
+
+            startIndex += 3;
+        }
+
+        newMesh.vertices = newVertices.ToArray();
+        newMesh.triangles = newTriangles.ToArray();
+        newMesh.colors = colors.ToArray();
+        newMesh.RecalculateNormals();
+
+        // Add a material to the mesh renderer to see the colors
+        meshRenderer.material = new Material(Shader.Find("Standard"))
+        {
+            color = Color.white
+        };
+    }
+
 }
