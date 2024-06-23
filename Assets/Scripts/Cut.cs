@@ -8,7 +8,7 @@ public class Cut : MonoBehaviour
     Mesh mesh;
     List<Vector3> vertices;
     List<int> triangles;
-
+    int numVertices;
     bool entOnEdge = false;
     bool exitOnEdge = false;
     Vector3 entry;
@@ -22,6 +22,7 @@ public class Cut : MonoBehaviour
         mesh = new Mesh();
         GetComponent<MeshFilter>().mesh = mesh;
         CreateShape();
+        numVertices = vertices.Count;
         UpdateMesh();
 
         MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
@@ -244,17 +245,6 @@ public class Cut : MonoBehaviour
 
         return lineStart + lineDirection * projectionLength;
     }
-    public void PrintAllVertices()
-    {
-        Debug.Log("Vertices of the Mesh:");
-
-        // Iterate over the vertices list
-        for (int i = 0; i < vertices.Count; i++)
-        {
-            // Log each vertex position
-            Debug.LogFormat("Vertex {0}: {1}", i, vertices[i]);
-        }
-    }
     void RemoveTriangle(int id)
     {
         for(int i=0;i<3;i++)
@@ -262,6 +252,33 @@ public class Cut : MonoBehaviour
             triangles[id * 3 + i] = 0;
         }
         UpdateMesh();
+    }
+    public Vector3[] GetEdgeVertices(Vector3 vertex, Vector3 v1, Vector3 v2, Vector3 v3)
+    {
+        bool IsPointOnLineSegment(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
+        {
+            Vector3 lineDirection = (lineEnd - lineStart).normalized;
+            Vector3 lineToPoint = point - lineStart;
+            float projectionLength = Vector3.Dot(lineToPoint, lineDirection);
+            if (projectionLength < 0 || projectionLength > Vector3.Distance(lineStart, lineEnd))
+                return false;
+            Vector3 closestPoint = lineStart + lineDirection * projectionLength;
+            float tolerance = 1e-6f;
+            return Vector3.Distance(closestPoint, point) < tolerance;
+        }
+        if (IsPointOnLineSegment(vertex, v1, v2))
+        {
+            return new Vector3[] { v1, v2, v3 };
+        }
+        else if (IsPointOnLineSegment(vertex, v2, v3))
+        {
+            return new Vector3[] { v2, v3, v1 };
+        }
+        else if (IsPointOnLineSegment(vertex, v3, v1))
+        {
+            return new Vector3[] { v3, v1, v2 };
+        }
+        return null;
     }
     void getCut(int id, Vector3 entry, Vector3 exit, int which)
     {
@@ -278,12 +295,37 @@ public class Cut : MonoBehaviour
         {
             Vector3[] triangleVertices = GetTriangleVertices(id);
             RemoveTriangle(id);
-            Vector3 v1 = triangleVertices[0];
-            Vector3 v2 = triangleVertices[1];
-            Vector3 v3 = triangleVertices[2];
             if (which == 1)
             {
-                PrintAllVertices();
+                triangleVertices = GetEdgeVertices(exit, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
+                Vector3 v1 = triangleVertices[0];
+                Vector3 v2 = triangleVertices[1];
+                Vector3 v3 = triangleVertices[2];
+                Vector3 dir = v2 - v1;
+                Ray ray = new Ray(v1, dir);
+                float offsetDistance = 0.02f;
+                Vector3 exit1 = exit - dir.normalized * offsetDistance;
+                Vector3 exit2 = exit + dir.normalized * offsetDistance;
+                vertices.Add(v1);
+                vertices.Add(v2);
+                vertices.Add(v3);
+                vertices.Add(entry);
+                vertices.Add(exit1);
+                vertices.Add(exit2);
+                triangles.Add(numVertices);
+                triangles.Add(numVertices + 4);
+                triangles.Add(numVertices + 3);
+                triangles.Add(numVertices);
+                triangles.Add(numVertices + 3);
+                triangles.Add(numVertices + 2);
+                triangles.Add(numVertices + 3);
+                triangles.Add(numVertices + 1);
+                triangles.Add(numVertices + 2);
+                triangles.Add(numVertices + 3);
+                triangles.Add(numVertices + 5);
+                triangles.Add(numVertices + 1);
+                numVertices += 6;
+                UpdateMesh();
             }
         }
     }
