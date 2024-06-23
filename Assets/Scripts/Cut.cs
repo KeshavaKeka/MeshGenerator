@@ -49,7 +49,7 @@ public class Cut : MonoBehaviour
                     previousTriangleID, currentTriangleID, transitionPoint);
                 exit = transitionPoint;
                 exitOnEdge = true;
-                getCut(previousTriangleID, entry, exit);
+                getCut(previousTriangleID, entry, exit, 1);
                 entry = transitionPoint;
                 entOnEdge = true;
             }
@@ -119,7 +119,7 @@ public class Cut : MonoBehaviour
 
             // Determine and log the final triangle ID for the exit point
             int exitTriangleID = GetTriangleID(exit);
-            getCut(exitTriangleID, entry, exit);
+            getCut(exitTriangleID, entry, exit, 0);
         }
     }
     Vector3[] GetTriangleVertices(int triangleID)
@@ -244,8 +244,26 @@ public class Cut : MonoBehaviour
 
         return lineStart + lineDirection * projectionLength;
     }
+    public void PrintAllVertices()
+    {
+        Debug.Log("Vertices of the Mesh:");
 
-    void getCut(int id, Vector3 entry, Vector3 exit)
+        // Iterate over the vertices list
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            // Log each vertex position
+            Debug.LogFormat("Vertex {0}: {1}", i, vertices[i]);
+        }
+    }
+    void RemoveTriangle(int id)
+    {
+        for(int i=0;i<3;i++)
+        {
+            triangles[id * 3 + i] = 0;
+        }
+        UpdateMesh();
+    }
+    void getCut(int id, Vector3 entry, Vector3 exit, int which)
     {
         if (entOnEdge == true && exitOnEdge == true)
         {
@@ -258,7 +276,15 @@ public class Cut : MonoBehaviour
         }
         else
         {
-            Debug.Log("1");
+            Vector3[] triangleVertices = GetTriangleVertices(id);
+            RemoveTriangle(id);
+            Vector3 v1 = triangleVertices[0];
+            Vector3 v2 = triangleVertices[1];
+            Vector3 v3 = triangleVertices[2];
+            if (which == 1)
+            {
+                PrintAllVertices();
+            }
         }
     }
 }
