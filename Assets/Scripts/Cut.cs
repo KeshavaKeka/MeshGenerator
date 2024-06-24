@@ -327,6 +327,38 @@ public class Cut : MonoBehaviour
                 numVertices += 6;
                 UpdateMesh();
             }
+            else
+            {
+                triangleVertices = GetEdgeVertices(entry, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
+                Vector3 v1 = triangleVertices[0];
+                Vector3 v2 = triangleVertices[1];
+                Vector3 v3 = triangleVertices[2];
+                Vector3 dir = v2 - v1;
+                Ray ray = new Ray(v1, dir);
+                float offsetDistance = 0.02f;
+                Vector3 entry1 = entry - dir.normalized * offsetDistance;
+                Vector3 entry2 = entry + dir.normalized * offsetDistance;
+                vertices.Add(v1);
+                vertices.Add(v2);
+                vertices.Add(v3);
+                vertices.Add(entry1);
+                vertices.Add(entry2);
+                vertices.Add(exit);
+                triangles.Add(numVertices + 3);
+                triangles.Add(numVertices + 5);
+                triangles.Add(numVertices);
+                triangles.Add(numVertices + 5);
+                triangles.Add(numVertices + 2);
+                triangles.Add(numVertices);
+                triangles.Add(numVertices + 4);
+                triangles.Add(numVertices + 1);
+                triangles.Add(numVertices + 5);
+                triangles.Add(numVertices + 5);
+                triangles.Add(numVertices + 1);
+                triangles.Add(numVertices + 2);
+                numVertices += 6;
+                UpdateMesh();
+            }
         }
     }
 }
