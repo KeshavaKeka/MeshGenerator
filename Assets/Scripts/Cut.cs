@@ -49,9 +49,11 @@ public class Cut : MonoBehaviour
                 Debug.LogFormat("Transition from Triangle {0} to Triangle {1} at Position: {2:0.000}",
                     previousTriangleID, currentTriangleID, transitionPoint);
                 exit = transitionPoint;
+                //Debug.LogFormat("Exit lallala: {0:0.000}", exit);
                 exitOnEdge = true;
                 getCut(previousTriangleID, entry, exit, 1);
-                entry = transitionPoint;
+                entry = exit;
+                //Debug.Log("Entry: {0:0.000}", entry);
                 entOnEdge = true;
             }
         }
@@ -61,16 +63,19 @@ public class Cut : MonoBehaviour
     {
         // Define the vertices of the shape
         vertices = new List<Vector3> {
+
             new Vector3(1, 0, 0),
             new Vector3(0, 0, 1),
             new Vector3(-1, 0, 0),
-            new Vector3(0, 0, -1)
+            new Vector3(0, 0, -1),
+            new Vector3(1.5f, 0, 0.5f)
         };
 
         // Define the triangles that make up the shape
         triangles = new List<int> {
             0, 3, 2,
-            0, 2, 1
+            0, 2, 1,
+            0, 1, 4
         };
     }
 
@@ -247,10 +252,9 @@ public class Cut : MonoBehaviour
     }
     void RemoveTriangle(int id)
     {
-        for(int i=0;i<3;i++)
-        {
-            triangles[id * 3 + i] = 0;
-        }
+        triangles[id * 3 + 0] = 0;
+        triangles[id * 3 + 1] = 0;
+        triangles[id * 3 + 2] = 0;
         UpdateMesh();
     }
     public Vector3[] GetEdgeVertices(Vector3 vertex, Vector3 v1, Vector3 v2, Vector3 v3)
@@ -285,7 +289,43 @@ public class Cut : MonoBehaviour
         if (entOnEdge == true && exitOnEdge == true)
         {
             Vector3[] triangleVertices = GetTriangleVertices(id);
-
+            RemoveTriangle(id);
+            Vector3[] notEntry = GetEdgeVertices(entry, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
+            Vector3[] notExit = GetEdgeVertices(exit, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
+            triangleVertices[2] = notEntry[2];
+            triangleVertices[1] = notExit[2];
+            for(int i = 0;i<2;i++)
+            {
+                if (notEntry[i] != notEntry[2] && notEntry[i] != notExit[2])
+                    triangleVertices[0] = notEntry[i];
+            }
+            Vector3 dir1 = triangleVertices[1] - triangleVertices[0];
+            Vector3 dir2 = triangleVertices[2] - triangleVertices[0];
+            Ray entRay = new Ray(triangleVertices[0], dir1);
+            Ray exiRay = new Ray(triangleVertices[0], dir2);
+            float offsetDistance = 0.02f;
+            Vector3 entry1 = entry - dir1.normalized * offsetDistance;
+            Vector3 entry2 = entry + dir1.normalized * offsetDistance;
+            Vector3 exit1 = exit - dir2.normalized * offsetDistance;
+            Vector3 exit2 = exit + dir2.normalized * offsetDistance;
+            vertices.Add(triangleVertices[0]);
+            vertices.Add(triangleVertices[1]);
+            vertices.Add(triangleVertices[2]);
+            vertices.Add(entry1);
+            vertices.Add(entry2);
+            vertices.Add(exit1);
+            vertices.Add(exit2);
+            triangles[id * 3 + 0] = numVertices;
+            triangles[id * 3 + 1] = numVertices + 3;
+            triangles[id * 3 + 2] = numVertices + 5;
+            triangles.Add(numVertices + 4);
+            triangles.Add(numVertices + 1);
+            triangles.Add(numVertices + 6);
+            triangles.Add(numVertices + 1);
+            triangles.Add(numVertices + 2);
+            triangles.Add(numVertices + 6);
+            UpdateMesh();
+            numVertices += 7;
         }
         else if (entOnEdge == false && exitOnEdge == false)
         {
@@ -312,9 +352,9 @@ public class Cut : MonoBehaviour
                 vertices.Add(entry);
                 vertices.Add(exit1);
                 vertices.Add(exit2);
-                triangles.Add(numVertices);
-                triangles.Add(numVertices + 4);
-                triangles.Add(numVertices + 3);
+                triangles[id * 3 + 0] = numVertices;
+                triangles[id * 3 + 1] = numVertices + 4;
+                triangles[id * 3 + 2] = numVertices + 3;
                 triangles.Add(numVertices);
                 triangles.Add(numVertices + 3);
                 triangles.Add(numVertices + 2);
@@ -344,9 +384,9 @@ public class Cut : MonoBehaviour
                 vertices.Add(entry1);
                 vertices.Add(entry2);
                 vertices.Add(exit);
-                triangles.Add(numVertices + 3);
-                triangles.Add(numVertices + 5);
-                triangles.Add(numVertices);
+                triangles[id * 3 + 0] = numVertices + 3;
+                triangles[id * 3 + 1] = numVertices + 5;
+                triangles[id * 3 + 2] = numVertices;
                 triangles.Add(numVertices + 5);
                 triangles.Add(numVertices + 2);
                 triangles.Add(numVertices);
