@@ -284,6 +284,15 @@ public class Cut : MonoBehaviour
         }
         return null;
     }
+    public static bool IsClockwise(Vector3 p1, Vector3 p2, Vector3 p3)
+    {
+        Vector3 edge1 = p2 - p1;
+        Vector3 edge2 = p3 - p1;
+        Vector3 normal = Vector3.Cross(edge1, edge2);
+        float dotProduct = Vector3.Dot(normal, Vector3.up);
+        Debug.Log(dotProduct < 0);
+        return dotProduct < 0;
+    }
     void getCut(int id, Vector3 entry, Vector3 exit, int which)
     {
         if (entOnEdge == true && exitOnEdge == true)
@@ -315,15 +324,42 @@ public class Cut : MonoBehaviour
             vertices.Add(entry2);
             vertices.Add(exit1);
             vertices.Add(exit2);
-            triangles[id * 3 + 0] = numVertices;
-            triangles[id * 3 + 1] = numVertices + 3;
-            triangles[id * 3 + 2] = numVertices + 5;
-            triangles.Add(numVertices + 4);
-            triangles.Add(numVertices + 1);
-            triangles.Add(numVertices + 6);
-            triangles.Add(numVertices + 1);
-            triangles.Add(numVertices + 2);
-            triangles.Add(numVertices + 6);
+            if (IsClockwise(triangleVertices[0], entry1, exit1))
+            {
+                triangles[id * 3 + 0] = numVertices;
+                triangles[id * 3 + 1] = numVertices + 5;
+                triangles[id * 3 + 2] = numVertices + 3;
+            }
+            else
+            {
+                triangles[id * 3 + 0] = numVertices;
+                triangles[id * 3 + 1] = numVertices + 3;
+                triangles[id * 3 + 2] = numVertices + 5;
+            }
+            if (IsClockwise(entry2, triangleVertices[1], exit2))
+            {
+                triangles.Add(numVertices + 4);
+                triangles.Add(numVertices + 6);
+                triangles.Add(numVertices + 1);
+            }
+            else
+            {
+                triangles.Add(numVertices + 4);
+                triangles.Add(numVertices + 1);
+                triangles.Add(numVertices + 6);
+            }
+            if (IsClockwise(triangleVertices[1], triangleVertices[2], exit2))
+            {
+                triangles.Add(numVertices + 1);
+                triangles.Add(numVertices + 6);
+                triangles.Add(numVertices + 2);
+            }
+            else
+            {
+                triangles.Add(numVertices + 1);
+                triangles.Add(numVertices + 2);
+                triangles.Add(numVertices + 6);
+            }
             UpdateMesh();
             numVertices += 7;
         }
