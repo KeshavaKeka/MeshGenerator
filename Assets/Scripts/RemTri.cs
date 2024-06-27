@@ -20,6 +20,7 @@ public class RemTri : MonoBehaviour
     Vector3 currentPosition;
     int previousTriangleID = -1;
     int currentTriangleID = -1;
+    List<int> RemovedTriangles;
 
     void Start()
     {
@@ -61,12 +62,17 @@ public class RemTri : MonoBehaviour
                 entOnEdge = true;
             }
         }
+        if(Input.GetKeyDown(KeyCode.G))
+        {
+            getBack();
+        }
     }
 
     void CreateShape()
     {
         vertices = new List<Vector3>();
         triangles = new List<int>();
+        RemovedTriangles = new List<int>();
 
         float dx = width / (verticesAlongX - 1);
         float dy = height / (verticesAlongY - 1);
@@ -292,6 +298,9 @@ public class RemTri : MonoBehaviour
         int triangle2Start = GetPairedTriangleStartIndex(triangleID);
 
         // Mark the vertices of the first triangle for removal
+        RemovedTriangles.Add(triangles[triangle1Start]);
+        RemovedTriangles.Add(triangles[triangle1Start + 1]);
+        RemovedTriangles.Add(triangles[triangle1Start + 2]);
         triangles[triangle1Start] = 0;
         triangles[triangle1Start + 1] = 0;
         triangles[triangle1Start + 2] = 0;
@@ -299,6 +308,9 @@ public class RemTri : MonoBehaviour
         // Mark the vertices of the paired triangle for removal, if valid
         if (triangle2Start != -1)
         {
+            RemovedTriangles.Add(triangles[triangle2Start]);
+            RemovedTriangles.Add(triangles[triangle2Start + 1]);
+            RemovedTriangles.Add(triangles[triangle2Start + 2]);
             triangles[triangle2Start] = 0;
             triangles[triangle2Start + 1] = 0;
             triangles[triangle2Start + 2] = 0;
@@ -348,4 +360,9 @@ public class RemTri : MonoBehaviour
             RemoveQuad(id);
     }
 
+    void getBack()
+    {
+        triangles.AddRange(RemovedTriangles);
+        UpdateMesh();
+    }
 }
