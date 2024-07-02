@@ -474,8 +474,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d32fcf5a4685b4cfe961bbf20fe8df0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  verticesAlongX: 100
-  verticesAlongY: 60
+  verticesAlongX: 50
+  verticesAlongY: 30
   width: 5
   height: 3
 --- !u!1 &1502719577
@@ -598,7 +598,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51136146d091840668583cb7e24e5cb0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 2
+  moveSpeed: 1
 --- !u!54 &1502719583
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -688,8 +688,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df502627751ee47beb612cf3c25678b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  verticesAlongX: 50
-  verticesAlongY: 30
+  verticesAlongX: 100
+  verticesAlongY: 60
   width: 5
   height: 3
 --- !u!23 &1924496055
