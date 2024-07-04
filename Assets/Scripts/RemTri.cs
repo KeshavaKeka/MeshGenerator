@@ -1,14 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO; // Include this for file operations
 
 [RequireComponent(typeof(MeshFilter))]
 public class RemTri : MonoBehaviour
 {
-    public int verticesAlongX = 50;
-    public int verticesAlongY = 30;
-    public float width = 5.0f;
-    public float height = 3.0f;
+    string path = Path.Combine(Application.dataPath, "Vertices.txt");
     Mesh mesh;
     List<Vector3> vertices;
     List<int> triangles;
@@ -25,84 +23,82 @@ public class RemTri : MonoBehaviour
     {
         mesh = new Mesh();
         GetComponent<MeshFilter>().mesh = mesh;
-        CreateShape();
-        numVertices = vertices.Count;
-        UpdateMesh();
 
-        MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
-        if (meshCollider != null)
+        // Read the vertices from the file
+        Vector3[] verticesArray = ReadVerticesFromFile(path);
+        if (verticesArray != null && verticesArray.Length > 0)
         {
-            meshCollider.convex = true;
-            meshCollider.isTrigger = true;
+            Debug.Log("Vertices successfully read from file.");
+            vertices = new List<Vector3>(verticesArray);
+
+            // Generate triangles based on the vertices
+            triangles = new List<int>(GenerateTriangles(vertices.Count));
+
+            numVertices = vertices.Count;
+            UpdateMesh();
+
+            MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
+            if (meshCollider != null)
+            {
+                meshCollider.convex = true;
+                meshCollider.isTrigger = true;
+            }
+        }
+        else
+        {
+            Debug.LogError("No vertices found in file or failed to read vertices.");
         }
     }
 
-    void Update()
+    Vector3[] ReadVerticesFromFile(string path)
     {
-        if (currentPosition != null)
+        if (!File.Exists(path))
         {
-            previousTriangleID = currentTriangleID;
-            currentTriangleID = GetTriangleID(currentPosition);
+            Debug.LogError("File not found: " + path);
+            return null;
+        }
 
-            if (previousTriangleID != -1 && currentTriangleID != previousTriangleID)
+        List<Vector3> verticesList = new List<Vector3>();
+        string[] lines = File.ReadAllLines(path);
+
+        foreach (string line in lines)
+        {
+            string[] parts = line.Trim(new char[] { '(', ')', ' ' }).Split(',');
+            if (parts.Length == 3)
             {
-                // Calculate the actual transition point
-                Vector3 transitionPoint = CalculateTransitionPoint(currentPosition, previousTriangleID, currentTriangleID);
-
-                // Log the transition with the adjusted transition point
-                Debug.LogFormat("Transition from Triangle {0} to Triangle {1} at Position: {2:0.000}",
-                    previousTriangleID, currentTriangleID, transitionPoint);
-                exit = transitionPoint;
-                //Debug.LogFormat("Exit lallala: {0:0.000}", exit);
-                exitOnEdge = true;
-                getCut(previousTriangleID, entry, exit, 1);
-                entry = exit;
-                //Debug.Log("Entry: {0:0.000}", entry);
-                entOnEdge = true;
+                if (float.TryParse(parts[0], out float x) && float.TryParse(parts[1], out float y) && float.TryParse(parts[2], out float z))
+                {
+                    verticesList.Add(new Vector3(x, y, z));
+                }
+                else
+                {
+                    Debug.LogError("Failed to parse vertex: " + line);
+                }
             }
         }
+
+        return verticesList.ToArray();
     }
 
-    void CreateShape()
+    int[] GenerateTriangles(int vertexCount)
     {
-        vertices = new List<Vector3>();
-        triangles = new List<int>();
-
-        float dx = width / (verticesAlongX - 1);
-        float dy = height / (verticesAlongY - 1);
-
-        for (int y = 0; y < verticesAlongY; y++)
+        // Generate dummy triangles assuming the vertices form a convex polygon.
+        if (vertexCount < 3)
         {
-            for (int x = 0; x < verticesAlongX; x++)
-            {
-                // Calculate the x position, ranging from -width/2 to width/2
-                float xPos = -width / 2 + x * dx;
-                // Calculate the y position, ranging from 0 to height
-                float yPos = y * dy;
-                // Add the vertex to the list
-                vertices.Add(new Vector3(xPos, yPos, 0));
-            }
+            Debug.LogError("Not enough vertices to form triangles.");
+            return new int[0];
         }
 
-        // Generate triangles
-        for (int y = 0; y < verticesAlongY - 1; y++)
+        List<int> triangles = new List<int>();
+        for (int i = 0; i < vertexCount - 2; i++)
         {
-            for (int x = 0; x < verticesAlongX - 1; x++)
-            {
-                // Calculate the starting index of the vertex in the grid
-                int start = y * verticesAlongX + x;
-
-                // First triangle (top-left, bottom-left, bottom-right)
-                triangles.Add(start);
-                triangles.Add(start + verticesAlongX);
-                triangles.Add(start + verticesAlongX + 1);
-
-                // Second triangle (top-left, bottom-right, top-right)
-                triangles.Add(start);
-                triangles.Add(start + verticesAlongX + 1);
-                triangles.Add(start + 1);
-            }
+            triangles.Add(0);
+            triangles.Add(i + 1);
+            triangles.Add(i + 2);
         }
+
+        Debug.Log("Triangles generated: " + triangles.Count / 3);
+        return triangles.ToArray();
     }
 
     void UpdateMesh()
@@ -113,9 +109,10 @@ public class RemTri : MonoBehaviour
         mesh.RecalculateNormals();
     }
 
+
+
     private void OnTriggerEnter(Collider other)
     {
-        // Get the contact point (entry) from the other object
         Transform contactPoint = other.transform.Find("Contact Point");
         if (contactPoint != null)
         {
@@ -123,7 +120,6 @@ public class RemTri : MonoBehaviour
             entOnEdge = false;
             Debug.LogFormat("Entry: {0:0.000}", entry);
 
-            // Determine and log the initial triangle ID for the entry point
             previousTriangleID = GetTriangleID(entry);
             currentTriangleID = previousTriangleID;
         }
@@ -131,7 +127,6 @@ public class RemTri : MonoBehaviour
 
     private void OnTriggerStay(Collider other)
     {
-        // Continuously update the current position of the contact point
         Transform contactPoint = other.transform.Find("Contact Point");
         if (contactPoint != null)
         {
@@ -141,7 +136,6 @@ public class RemTri : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        // Get the contact point (exit) from the other object
         Transform contactPoint = other.transform.Find("Contact Point");
         if (contactPoint != null)
         {
@@ -149,11 +143,11 @@ public class RemTri : MonoBehaviour
             exitOnEdge = false;
             Debug.LogFormat("Exit: {0:0.000}", exit);
 
-            // Determine and log the final triangle ID for the exit point
             int exitTriangleID = GetTriangleID(exit);
             getCut(exitTriangleID, entry, exit, 0);
         }
     }
+
     Vector3[] GetTriangleVertices(int triangleID)
     {
         if (triangleID < 0 || triangleID >= triangles.Count / 3)
@@ -169,6 +163,7 @@ public class RemTri : MonoBehaviour
 
         return new Vector3[] { v0, v1, v2 };
     }
+
     int GetTriangleID(Vector3 point)
     {
         for (int i = 0; i < triangles.Count; i += 3)
@@ -188,40 +183,33 @@ public class RemTri : MonoBehaviour
 
     bool IsPointInTriangle(Vector3 p, Vector3 v0, Vector3 v1, Vector3 v2)
     {
-        // Compute vectors
         Vector3 v0v1 = v1 - v0;
         Vector3 v0v2 = v2 - v0;
         Vector3 v0p = p - v0;
 
-        // Compute dot products
         float dot00 = Vector3.Dot(v0v2, v0v2);
         float dot01 = Vector3.Dot(v0v2, v0v1);
         float dot02 = Vector3.Dot(v0v2, v0p);
         float dot11 = Vector3.Dot(v0v1, v0v1);
         float dot12 = Vector3.Dot(v0v1, v0p);
 
-        // Compute barycentric coordinates
         float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
         float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
         float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
 
-        // Check if point is in triangle
         return (u >= 0) && (v >= 0) && (u + v <= 1);
     }
 
     Vector3 CalculateTransitionPoint(Vector3 currentPosition, int previousTriangleID, int currentTriangleID)
     {
-        // Get the edge between the two triangles
         Vector3[] edge = GetSharedEdge(previousTriangleID, currentTriangleID);
 
         if (edge != null && edge.Length == 2)
         {
-            // Project the current position onto the shared edge to get the transition point
             Vector3 projection = ProjectPointOntoLineSegment(currentPosition, edge[0], edge[1]);
             return projection;
         }
 
-        // If no shared edge or any other issues, return the current position as fallback
         return currentPosition;
     }
 
@@ -229,7 +217,6 @@ public class RemTri : MonoBehaviour
     {
         if (triangleID1 == -1 || triangleID2 == -1) return null;
 
-        // Get vertices of both triangles
         Vector3[] triangle1Vertices = {
             vertices[triangles[triangleID1 * 3]],
             vertices[triangles[triangleID1 * 3 + 1]],
@@ -242,7 +229,6 @@ public class RemTri : MonoBehaviour
             vertices[triangles[triangleID2 * 3 + 2]]
         };
 
-        // Find the shared edge between the two triangles
         List<Vector3> sharedVertices = new List<Vector3>();
 
         foreach (Vector3 vertex1 in triangle1Vertices)
@@ -256,7 +242,6 @@ public class RemTri : MonoBehaviour
             }
         }
 
-        // If we have exactly 2 shared vertices, we have found the shared edge
         if (sharedVertices.Count == 2)
         {
             return sharedVertices.ToArray();
@@ -270,82 +255,53 @@ public class RemTri : MonoBehaviour
         Vector3 lineDirection = (lineEnd - lineStart).normalized;
         Vector3 lineToPoint = point - lineStart;
 
-        // Project point onto the line defined by lineStart and lineEnd
         float projectionLength = Vector3.Dot(lineToPoint, lineDirection);
         projectionLength = Mathf.Clamp(projectionLength, 0, Vector3.Distance(lineStart, lineEnd));
 
         return lineStart + lineDirection * projectionLength;
     }
+
     void RemoveQuad(int triangleID)
     {
-        // Check if the triangle ID is valid
-        if (triangleID < 0 || triangleID >= triangles.Count / 3)
+        if (triangleID < 0 || triangleID >= triangles.Count / 3) return;
+
+        for (int i = 0; i < 3; i++)
         {
-            Debug.LogError("Invalid triangle ID");
+            int vertexIndex = triangles[triangleID * 3 + i];
+            if (vertexIndex >= 0 && vertexIndex < vertices.Count)
+            {
+                vertices.RemoveAt(vertexIndex);
+                numVertices--;
+            }
+        }
+
+        for (int i = 0; i < 3; i++)
+        {
+            triangles[triangleID * 3 + i] = -1;
+        }
+
+        triangles.RemoveAll(t => t == -1);
+
+        mesh.Clear();
+        mesh.vertices = vertices.ToArray();
+        mesh.triangles = triangles.ToArray();
+        mesh.RecalculateNormals();
+
+        MeshCollider meshCollider = GetComponent<MeshCollider>();
+        if (meshCollider != null)
+        {
+            meshCollider.sharedMesh = mesh;
+        }
+    }
+
+    void getCut(int exitTriangleID, Vector3 entry, Vector3 exit, int currentTriangleID)
+    {
+        if (exitTriangleID == -1)
+        {
+            Debug.Log("Exit triangle not found");
             return;
         }
 
-        // Calculate the indices of the triangles that form the quad
-        int triangle1Start = triangleID * 3;
-
-        // Determine the second triangle forming the quad
-        int triangle2Start = GetPairedTriangleStartIndex(triangleID);
-
-        // Mark the vertices of the first triangle for removal
-        triangles[triangle1Start] = 0;
-        triangles[triangle1Start + 1] = 0;
-        triangles[triangle1Start + 2] = 0;
-
-        // Mark the vertices of the paired triangle for removal, if valid
-        if (triangle2Start != -1)
-        {
-            triangles[triangle2Start] = 0;
-            triangles[triangle2Start + 1] = 0;
-            triangles[triangle2Start + 2] = 0;
-        }
-
-        // Update the mesh
-        UpdateMesh();
+        RemoveQuad(exitTriangleID);
     }
-
-    int GetPairedTriangleStartIndex(int triangleID)
-    {
-        // Check if the triangle ID is valid
-        if (triangleID < 0 || triangleID >= triangles.Count / 3)
-        {
-            Debug.LogError("Invalid triangle ID");
-            return -1;
-        }
-
-        int triangleStartIndex = triangleID * 3;
-
-        // Get the vertices of the current triangle
-        int v0 = triangles[triangleStartIndex];
-        int v1 = triangles[triangleStartIndex + 1];
-        int v2 = triangles[triangleStartIndex + 2];
-
-        // Determine which of the triangle's edges is shared with its paired triangle
-        if (v1 == v2 + 1 || v1 == v2 - 1) // Shared edge between v1 and v2
-        {
-            return (triangleStartIndex % 6 == 0) ? triangleStartIndex + 3 : triangleStartIndex - 3;
-        }
-        else if (v0 == v2 + 1 || v0 == v2 - 1) // Shared edge between v0 and v2
-        {
-            return (triangleStartIndex % 6 == 0) ? triangleStartIndex + 3 : triangleStartIndex - 3;
-        }
-        else if (v0 == v1 + 1 || v0 == v1 - 1) // Shared edge between v0 and v1
-        {
-            return (triangleStartIndex % 6 == 0) ? triangleStartIndex + 3 : triangleStartIndex - 3;
-        }
-
-        // If no paired triangle found, return an invalid index
-        return -1;
-    }
-
-    void getCut(int id, Vector3 entry, Vector3 exit, int which)
-    {
-        if (id > -1)
-            RemoveQuad(id);
-    }
-
 }
