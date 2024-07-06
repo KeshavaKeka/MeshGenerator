@@ -389,6 +389,7 @@ GameObject:
   - component: {fileID: 537036806}
   - component: {fileID: 537036805}
   - component: {fileID: 537036804}
+  - component: {fileID: 537036808}
   - component: {fileID: 537036807}
   m_Layer: 0
   m_Name: Mesh
@@ -474,10 +475,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d32fcf5a4685b4cfe961bbf20fe8df0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  verticesAlongX: 50
-  verticesAlongY: 30
+  verticesAlongX: 100
+  verticesAlongY: 60
   width: 5
   height: 3
+--- !u!64 &537036808
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 537036803}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 0}
 --- !u!1 &1502719577
 GameObject:
   m_ObjectHideFlags: 0
