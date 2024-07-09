@@ -94,17 +94,18 @@ public class Cut : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         // Get the contact point (entry) from the other object
-        Transform contactPoint = other.transform.Find("Contact Point");
-        if (contactPoint != null)
-        {
-            entry = new Vector3(contactPoint.position.x, 0, contactPoint.position.z);
-            entOnEdge = false;
-            Debug.LogFormat("Entry: {0:0.000}", entry);
+        Vector3 contactPoint = other.ClosestPointOnBounds(transform.position);
+        Debug.Log(contactPoint);
+        //if (contactPoint != null)
+        //{
+        //    entry = new Vector3(contactPoint.position.x, 0, contactPoint.position.z);
+        //    entOnEdge = false;
+        //    Debug.LogFormat("Entry: {0:0.000}", entry);
 
-            // Determine and log the initial triangle ID for the entry point
-            previousTriangleID = GetTriangleID(entry);
-            currentTriangleID = previousTriangleID;
-        }
+        //    // Determine and log the initial triangle ID for the entry point
+        //    previousTriangleID = GetTriangleID(entry);
+        //    currentTriangleID = previousTriangleID;
+        //}
     }
 
     private void OnTriggerStay(Collider other)

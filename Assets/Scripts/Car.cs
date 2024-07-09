@@ -11,7 +11,11 @@ public class Car : MonoBehaviour
     List<Vector3> vertices;
     List<int> triangles;
     int numVertices;
-    // Start is called before the first frame update
+    Vector3 entry;
+    Vector3 exit;
+    Vector3 currentPosition;
+    int previousTriangleID = -1;
+    int currentTriangleID = -1;
     void Start()
     {
         mesh = new Mesh();
@@ -23,8 +27,8 @@ public class Car : MonoBehaviour
         MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
         if (meshCollider != null)
         {
-            meshCollider.convex = true;
-            meshCollider.isTrigger = true;
+            meshCollider.convex = false;
+            meshCollider.isTrigger = false;
         }
     }
 
@@ -83,26 +87,21 @@ public class Car : MonoBehaviour
     {
         List<Vector3> vertices = new List<Vector3>();
 
-        // Ensure the file exists before attempting to read
         if (File.Exists(fileName))
         {
-            // Open the file for reading
             using (StreamReader reader = new StreamReader(fileName))
             {
                 string line;
                 while ((line = reader.ReadLine()) != null)
                 {
-                    // Split the line by commas
                     string[] values = line.Split(',');
 
-                    if (values.Length == 3) // Ensure there are exactly 3 values
+                    if (values.Length == 3)
                     {
-                        // Parse the string values to floats
                         if (float.TryParse(values[0], NumberStyles.Float, CultureInfo.InvariantCulture, out float x) &&
                             float.TryParse(values[1], NumberStyles.Float, CultureInfo.InvariantCulture, out float y) &&
                             float.TryParse(values[2], NumberStyles.Float, CultureInfo.InvariantCulture, out float z))
                         {
-                            // Create a Vector3 from the parsed values and add to the list
                             vertices.Add(new Vector3(x, y, z));
                         }
                         else
@@ -116,8 +115,6 @@ public class Car : MonoBehaviour
                     }
                 }
             }
-
-            Debug.Log($"Loaded {vertices.Count} vertices from {fileName}");
         }
         else
         {
@@ -127,7 +124,6 @@ public class Car : MonoBehaviour
         return vertices;
     }
 
-    // Update is called once per frame
     void Update()
     {
         
