@@ -142,6 +142,7 @@ public class Car : MonoBehaviour
         RaycastHit hit;
         if (Physics.Raycast(colliderPosition, direction, out hit))
         {
+            Debug.DrawRay(colliderPosition, direction * hit.distance, Color.blue, 2.0f);
             // Check if the hit object is this mesh
             if (hit.collider.gameObject == gameObject)
             {
@@ -181,8 +182,7 @@ public class Car : MonoBehaviour
             if (LinePlaneIntersection(out intersectionPoint, fromPosition, toPosition, v1, v2, v3))
             {
                 int triangleId = i / 3;
-                Debug.Log($"Intersection point on mesh: {intersectionPoint}, Triangle ID: {triangleId}");
-
+                Debug.Log($"Intersection point on mesh: {intersectionPoint}, Triangle ID: {triangleId}, v1{v1}, v2{v2}, v3{v3}");
                 HighlightTriangle(triangleId);
                 return; // Exit after finding the first intersection
             }
