@@ -9,6 +9,16 @@ public class RemTri : MonoBehaviour
     public int verticesAlongY = 30;
     public float width = 5.0f;
     public float height = 3.0f;
+
+    public float pointDistance = 1f; // Distance between the two points
+    public Color highlightColor = Color.red; // Color to highlight the points
+    private Vector3 point1, point2; // The two points to highlight
+    private bool pointsSet = false; // Flag to check if points have been set
+    private GameObject point1Marker, point2Marker;
+
+    private Vector3 selectedPoint1;
+    private Vector3 selectedPoint2;
+
     Mesh mesh;
     List<Vector3> vertices;
     List<int> triangles;
@@ -20,6 +30,45 @@ public class RemTri : MonoBehaviour
     Vector3 currentPosition;
     int previousTriangleID = -1;
     int currentTriangleID = -1;
+
+
+    GameObject CreateSphereMarker(Vector3 position, string name)
+    {
+        GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        marker.name = name;
+        marker.transform.position = position;
+        marker.transform.localScale = Vector3.one * 0.1f; // Adjust size as needed
+        marker.transform.SetParent(this.transform);
+
+        Renderer renderer = marker.GetComponent<Renderer>();
+        renderer.material = new Material(Shader.Find("Standard"));
+        renderer.material.color = highlightColor;
+
+        return marker;
+    }
+
+
+    void SetHighlightedPoints()
+    {
+        // Choose a random vertex as the starting point
+        int randomIndex = Random.Range(0, vertices.Count);
+        point1 = vertices[randomIndex];
+
+        // Find the closest vertex that is approximately 'pointDistance' away
+        float closestDistance = float.MaxValue;
+        foreach (Vector3 vertex in vertices)
+        {
+            float distance = Vector3.Distance(point1, vertex);
+            if (Mathf.Abs(distance - pointDistance) < closestDistance)
+            {
+                closestDistance = Mathf.Abs(distance - pointDistance);
+                point2 = vertex;
+            }
+        }
+
+        pointsSet = true;
+    }
+
 
     void Start()
     {
@@ -35,7 +84,67 @@ public class RemTri : MonoBehaviour
             meshCollider.convex = true;
             meshCollider.isTrigger = true;
         }
+
+        SelectConstantPoints(); // Select the points once
+        SetAndVisualizePoints(); // Visualize the selected points
     }
+
+    void SelectConstantPoints()
+    {
+        // Choose a random direction (horizontal or vertical)
+        bool useHorizontal = Random.value > 0.5f;
+
+        // Calculate step sizes
+        float stepX = width / (verticesAlongX - 1);
+        float stepY = height / (verticesAlongY - 1);
+
+        // Select a random line
+        float linePosition = useHorizontal
+            ? Random.Range(0, height)
+            : Random.Range(-width / 2, width / 2);
+
+        // Calculate start and end points
+        float start, end;
+        if (useHorizontal)
+        {
+            start = -width / 2;
+            end = start + Mathf.Min(pointDistance, width);
+        }
+        else
+        {
+            start = 0;
+            end = Mathf.Min(pointDistance, height);
+        }
+
+        // Ensure points are within mesh bounds
+        if (useHorizontal)
+        {
+            selectedPoint1 = new Vector3(start, linePosition, 0);
+            selectedPoint2 = new Vector3(end, linePosition, 0);
+        }
+        else
+        {
+            selectedPoint1 = new Vector3(linePosition, start, 0);
+            selectedPoint2 = new Vector3(linePosition, end, 0);
+        }
+
+        Debug.Log($"Selected Point 1: {selectedPoint1}, Point 2: {selectedPoint2}, Distance: {Vector3.Distance(selectedPoint1, selectedPoint2)}");
+    }
+
+    void SetAndVisualizePoints()
+    {
+        // Remove existing markers if they exist
+        if (point1Marker != null) Destroy(point1Marker);
+        if (point2Marker != null) Destroy(point2Marker);
+
+        // Create sphere markers for the points
+        point1Marker = CreateSphereMarker(selectedPoint1, "Point1Marker");
+        point2Marker = CreateSphereMarker(selectedPoint2, "Point2Marker");
+
+        // Log the points for debugging
+        Debug.Log($"Visualizing - Point 1: {selectedPoint1}, Point 2: {selectedPoint2}, Distance: {Vector3.Distance(selectedPoint1, selectedPoint2)}");
+    }
+
 
     void Update()
     {
