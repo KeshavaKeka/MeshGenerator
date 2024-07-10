@@ -8,7 +8,7 @@ using UnityEngine;
 public class Car : MonoBehaviour
 {
     public string filePathVertices = "Assets/Mesh/meshVertices.txt";
-    public string filePathTriangles= "Assets/Mesh/MeshTriangles.txt";
+    public string filePathTriangles = "Assets/Mesh/MeshTriangles.txt";
     Mesh mesh;
     List<Vector3> vertices;
     List<int> triangles;
@@ -20,9 +20,11 @@ public class Car : MonoBehaviour
     int currentTriangleID = -1;
     private Vector3 previousPosition;
     public GameObject collidingObject;
-    public Material defaultMaterial;
-    public Material highlightMaterial;
     private int lastHighlightedTriangle = -1;
+    public GameObject stick;
+
+    private Vector3 stickPreviousPosition;
+
     void Start()
     {
         mesh = new Mesh();
@@ -38,6 +40,7 @@ public class Car : MonoBehaviour
             meshCollider.isTrigger = true;
         }
         previousPosition = collidingObject.transform.position;
+        stickPreviousPosition = stick.transform.position;
     }
 
     void CreateShape()
@@ -130,129 +133,85 @@ public class Car : MonoBehaviour
         return vertices;
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        // Get the position of the colliding object
-        Vector3 colliderPosition = other.transform.position;
 
-        // Calculate direction from the colliding object to this mesh object
-        Vector3 direction = transform.position - colliderPosition;
-
-        // Perform the raycast
-        RaycastHit hit;
-        if (Physics.Raycast(colliderPosition, direction, out hit))
-        {
-            Debug.DrawRay(colliderPosition, direction * hit.distance, Color.blue, 2.0f);
-            // Check if the hit object is this mesh
-            if (hit.collider.gameObject == gameObject)
-            {
-                Vector3 intersectionPoint = hit.point;
-                Debug.Log($"Intersection point on mesh: {intersectionPoint}");
-
-                // You can do further processing with the intersection point here
-                // For example, you might want to mark this point on the mesh, or use it for cutting logic
-            }
-        }
-    }
     void Update()
     {
-        Vector3 currentPosition = collidingObject.transform.position;
-        Vector3 movement = currentPosition - previousPosition;
-
-        if (movement.magnitude > 0)
-        {
-            CheckMeshIntersection(previousPosition, currentPosition);
-        }
-
-        previousPosition = currentPosition;
+        
     }
 
-    void CheckMeshIntersection(Vector3 fromPosition, Vector3 toPosition)
+    void OnTriggerStay(Collider other)
     {
-        Vector3[] meshVertices = mesh.vertices;
-        int[] meshTriangles = mesh.triangles;
-
-        for (int i = 0; i < meshTriangles.Length; i += 3)
+        if (other.gameObject == stick)
         {
-            Vector3 v1 = transform.TransformPoint(meshVertices[meshTriangles[i]]);
-            Vector3 v2 = transform.TransformPoint(meshVertices[meshTriangles[i + 1]]);
-            Vector3 v3 = transform.TransformPoint(meshVertices[meshTriangles[i + 2]]);
+            Vector3 closestPoint = other.ClosestPoint(transform.position);
+            Vector3 localHitPoint = transform.InverseTransformPoint(closestPoint);
+            int hitTriangleIndex = FindHitTriangle(localHitPoint);
 
-            Vector3 intersectionPoint;
-            if (LinePlaneIntersection(out intersectionPoint, fromPosition, toPosition, v1, v2, v3))
+            if (hitTriangleIndex != -1)
             {
-                int triangleId = i / 3;
-                Debug.Log($"Intersection point on mesh: {intersectionPoint}, Triangle ID: {triangleId}, v1{v1}, v2{v2}, v3{v3}");
-                HighlightTriangle(triangleId);
-                return; // Exit after finding the first intersection
+                Vector3 worldContactPoint = transform.TransformPoint(localHitPoint);
+                //WHAT IS THE PURPOSE OF worldContactPoint AND HOW IS IT DIFFERENT FROM localHitPoint;
+
+                PointTriangle(worldContactPoint, vertices[hitTriangleIndex * 3], vertices[hitTriangleIndex * 3 + 1], vertices[hitTriangleIndex * 3 + 2]);
+
             }
         }
     }
 
-    bool LinePlaneIntersection(out Vector3 intersection, Vector3 linePoint, Vector3 lineVec, Vector3 planeP1, Vector3 planeP2, Vector3 planeP3)
+    int FindHitTriangle(Vector3 localHitPoint)
     {
-        Vector3 planeNormal = Vector3.Cross(planeP2 - planeP1, planeP3 - planeP1).normalized;
-        Vector3 planePosition = planeP1;
-
-        float planeD = -Vector3.Dot(planeNormal, planePosition);
-        float ad = Vector3.Dot(linePoint, planeNormal);
-        float bd = Vector3.Dot(lineVec, planeNormal);
-        float t = (-planeD - ad) / bd;
-
-        intersection = linePoint + t * lineVec;
-
-        Vector3 cp1 = Vector3.Cross(planeP2 - planeP1, intersection - planeP1);
-        Vector3 cp2 = Vector3.Cross(planeP3 - planeP2, intersection - planeP2);
-        Vector3 cp3 = Vector3.Cross(planeP1 - planeP3, intersection - planeP3);
-
-        if (Vector3.Dot(cp1, planeNormal) >= 0 &&
-            Vector3.Dot(cp2, planeNormal) >= 0 &&
-            Vector3.Dot(cp3, planeNormal) >= 0 &&
-            t >= 0 && t <= 1)
+        for (int i = 0; i < triangles.Count; i += 3)
         {
-            return true;
-        }
+            Vector3 v1 = vertices[triangles[i]];
+            Vector3 v2 = vertices[triangles[i + 1]];
+            Vector3 v3 = vertices[triangles[i + 2]];
 
-        return false;
+            if (PointInTriangle(localHitPoint, v1, v2, v3))
+            {
+                return i / 3;
+            }
+        }
+        return -1;
     }
 
-    void HighlightTriangle(int triangleId)
+    bool PointInTriangle(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
     {
-        if (lastHighlightedTriangle != -1)
-        {
-            // Reset the previous highlighted triangle
-            SetTriangleMaterial(lastHighlightedTriangle, defaultMaterial);
-        }
+        Vector3 v0 = c - a;
+        Vector3 v1 = b - a;
+        Vector3 v2 = p - a;
 
-        // Highlight the new triangle
-        SetTriangleMaterial(triangleId, highlightMaterial);
-        lastHighlightedTriangle = triangleId;
+        float dot00 = Vector3.Dot(v0, v0);
+        float dot01 = Vector3.Dot(v0, v1);
+        float dot02 = Vector3.Dot(v0, v2);
+        float dot11 = Vector3.Dot(v1, v1);
+        float dot12 = Vector3.Dot(v1, v2);
+
+        float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+        float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+        float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+        return (u >= 0) && (v >= 0) && (u + v < 1);
     }
 
-    void SetTriangleMaterial(int triangleId, Material material)
+    void PointTriangle(Vector3 p, Vector3 a, Vector3 b, Vector3 c)
     {
-        int[] triangles = mesh.triangles;
-        int[] newTriangles = new int[3];
-        newTriangles[0] = triangles[triangleId * 3];
-        newTriangles[1] = triangles[triangleId * 3 + 1];
-        newTriangles[2] = triangles[triangleId * 3 + 2];
+        Vector3 v0 = c - a;
+        Vector3 v1 = b - a;
+        Vector3 v2 = p - a;
 
-        Mesh newMesh = new Mesh();
-        newMesh.vertices = mesh.vertices;
-        newMesh.triangles = newTriangles;
-        newMesh.normals = mesh.normals;
-        newMesh.uv = mesh.uv;
+        float dot00 = Vector3.Dot(v0, v0);
+        float dot01 = Vector3.Dot(v0, v1);
+        float dot02 = Vector3.Dot(v0, v2);
+        float dot11 = Vector3.Dot(v1, v1);
+        float dot12 = Vector3.Dot(v1, v2);
 
-        GameObject highlightObject = new GameObject($"HighlightTriangle_{triangleId}");
-        highlightObject.transform.SetParent(transform, false);
-        highlightObject.transform.localPosition = Vector3.zero;
-        highlightObject.transform.localRotation = Quaternion.identity;
-        highlightObject.transform.localScale = Vector3.one;
+        float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+        float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+        float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
 
-        MeshFilter meshFilter = highlightObject.AddComponent<MeshFilter>();
-        meshFilter.mesh = newMesh;
-
-        MeshRenderer meshRenderer = highlightObject.AddComponent<MeshRenderer>();
-        meshRenderer.material = material;
+        if((u >= 0) && (v >= 0) && (u + v < 1))
+        {
+            Debug.Log("Yes point lies on the triangle.");
+        }
     }
 }

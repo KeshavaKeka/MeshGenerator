@@ -222,8 +222,7 @@ MonoBehaviour:
   filePathVertices: Assets/Mesh/meshVertices.txt
   filePathTriangles: Assets/Mesh/MeshTriangles.txt
   collidingObject: {fileID: 865132689}
-  defaultMaterial: {fileID: 0}
-  highlightMaterial: {fileID: 0}
+  stick: {fileID: 865132689}
 --- !u!1 &865132689
 GameObject:
   m_ObjectHideFlags: 0
@@ -239,7 +238,7 @@ GameObject:
   - component: {fileID: 865132690}
   - component: {fileID: 865132695}
   m_Layer: 0
-  m_Name: Sword
+  m_Name: Stick
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
