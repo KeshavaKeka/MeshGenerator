@@ -139,6 +139,14 @@ public class Car : MonoBehaviour
         
     }
 
+    private void OnTriggerEnter(Collider other)
+    {
+        if(other.gameObject == stick)
+        {
+
+        }
+    }
+
     void OnTriggerStay(Collider other)
     {
         if (other.gameObject == stick)

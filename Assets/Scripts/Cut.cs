@@ -16,6 +16,7 @@ public class Cut : MonoBehaviour
     Vector3 currentPosition;
     int previousTriangleID = -1;
     int currentTriangleID = -1;
+    float offsetDistance = 0.02f;
 
     void Start()
     {
@@ -39,10 +40,24 @@ public class Cut : MonoBehaviour
         {
             previousTriangleID = currentTriangleID;
             currentTriangleID = GetTriangleID(currentPosition);
-            
-            if(currentTriangleID == -1)
+
+            if (currentTriangleID != 1 && previousTriangleID == -1)
             {
-                Debug.Log("Error here in line 45");
+                Vector3 transitionPoint = CalculateTransitionPoint(currentPosition, currentTriangleID);
+                entry = transitionPoint;
+                entOnEdge = true;
+            }
+            if(currentTriangleID == -1 && previousTriangleID != -1)
+            {
+                Vector3 transitionPoint = CalculateTransitionPoint(currentPosition, previousTriangleID);
+                exit = transitionPoint;
+                exitOnEdge = true;
+                //Debug.LogFormat("Call index {0}",previousTriangleID);
+                //Debug.LogFormat("Entry: {0:0.000}", entry);
+                //Debug.LogFormat("Exit: {0:0.000}", exit);
+                getCut(previousTriangleID, entry, exit, 1);
+                entry = exit;
+                entOnEdge = true;
             }
             else if (previousTriangleID != -1 && currentTriangleID != previousTriangleID)
             {
@@ -50,11 +65,14 @@ public class Cut : MonoBehaviour
                 Vector3 transitionPoint = CalculateTransitionPoint(currentPosition, previousTriangleID, currentTriangleID);
 
                 // Log the transition with the adjusted transition point
-                Debug.LogFormat("Transition from Triangle {0} to Triangle {1} at Position: {2:0.000}",
-                    previousTriangleID, currentTriangleID, transitionPoint);
+                //Debug.LogFormat("Transition from Triangle {0} to Triangle {1} at Position: {2:0.000}",
+                    //previousTriangleID, currentTriangleID, transitionPoint);
                 exit = transitionPoint;
                 //Debug.LogFormat("Exit lallala: {0:0.000}", exit);
                 exitOnEdge = true;
+                //Debug.LogFormat("Call index {0}", previousTriangleID);
+                //Debug.LogFormat("Entry: {0:0.000}", entry);
+                //Debug.LogFormat("Exit: {0:0.000}", exit);
                 getCut(previousTriangleID, entry, exit, 1);
                 entry = exit;
                 //Debug.Log("Entry: {0:0.000}", entry);
@@ -95,17 +113,17 @@ public class Cut : MonoBehaviour
     {
         // Get the contact point (entry) from the other object
         Vector3 contactPoint = other.ClosestPointOnBounds(transform.position);
-        Debug.Log(contactPoint);
-        //if (contactPoint != null)
-        //{
-        //    entry = new Vector3(contactPoint.position.x, 0, contactPoint.position.z);
-        //    entOnEdge = false;
-        //    Debug.LogFormat("Entry: {0:0.000}", entry);
+        //Debug.Log(contactPoint);
+        if (contactPoint != null)
+        {
+            entry = new Vector3(other.transform.position.x, 0, other.transform.position.z);
+            entOnEdge = false;
+            //Debug.LogFormat("Entry: {0:0.000}", entry);
 
-        //    // Determine and log the initial triangle ID for the entry point
-        //    previousTriangleID = GetTriangleID(entry);
-        //    currentTriangleID = previousTriangleID;
-        //}
+            // Determine and log the initial triangle ID for the entry point
+            previousTriangleID = GetTriangleID(entry);
+            currentTriangleID = previousTriangleID;
+        }
     }
 
     private void OnTriggerStay(Collider other)
@@ -131,6 +149,8 @@ public class Cut : MonoBehaviour
             // Determine and log the final triangle ID for the exit point
             int exitTriangleID = GetTriangleID(exit);
             getCut(exitTriangleID, entry, exit, 0);
+            entry = exit;
+            entOnEdge = false;
         }
     }
     Vector3[] GetTriangleVertices(int triangleID)
@@ -202,6 +222,72 @@ public class Cut : MonoBehaviour
 
         // If no shared edge or any other issues, return the current position as fallback
         return currentPosition;
+    }
+
+    Vector3 CalculateTransitionPoint(Vector3 currentPosition, int TriangleID)
+    {
+        // Get the edge between the two triangles
+        Vector3[] edge = GetClosestEdge(TriangleID, currentPosition);
+
+        if (edge != null && edge.Length == 2)
+        {
+            // Project the current position onto the shared edge to get the transition point
+            Vector3 projection = ProjectPointOntoLineSegment(currentPosition, edge[0], edge[1]);
+            return projection;
+        }
+
+        // If no shared edge or any other issues, return the current position as fallback
+        return currentPosition;
+    }
+
+    Vector3[] GetClosestEdge(int triangleID, Vector3 point)
+    {
+        if (triangleID == -1) return null;
+
+        // Get vertices of the triangle
+        Vector3[] triangleVertices = {
+        vertices[triangles[triangleID * 3]],
+        vertices[triangles[triangleID * 3 + 1]],
+        vertices[triangles[triangleID * 3 + 2]]
+        };
+
+        // Define edges of the triangle
+        Vector3[][] edges = {
+        new Vector3[] { triangleVertices[0], triangleVertices[1] },
+        new Vector3[] { triangleVertices[1], triangleVertices[2] },
+        new Vector3[] { triangleVertices[2], triangleVertices[0] }
+        };
+
+        // Initialize the closest edge and the minimum distance
+        Vector3[] closestEdge = null;
+        float minDistance = float.MaxValue;
+
+        // Function to calculate distance from a point to a line segment
+        float DistancePointToSegment(Vector3 p, Vector3 v, Vector3 w)
+        {
+            // Return minimum distance between point p and line segment vw
+            float l2 = Vector3.SqrMagnitude(w - v); // i.e. |w-v|^2 -  avoid a sqrt
+            if (l2 == 0.0) return Vector3.Distance(p, v); // v == w case
+                                                          // Consider the line extending the segment, parameterized as v + t (w - v).
+                                                          // We find projection of point p onto the line.
+                                                          // It falls where t = [(p-v) . (w-v)] / |w-v|^2
+            float t = Mathf.Max(0, Mathf.Min(1, Vector3.Dot(p - v, w - v) / l2));
+            Vector3 projection = v + t * (w - v); // Projection falls on the segment
+            return Vector3.Distance(p, projection);
+        }
+
+        // Find the closest edge
+        foreach (var edge in edges)
+        {
+            float distance = DistancePointToSegment(point, edge[0], edge[1]);
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                closestEdge = edge;
+            }
+        }
+
+        return closestEdge;
     }
 
     Vector3[] GetSharedEdge(int triangleID1, int triangleID2)
@@ -287,7 +373,11 @@ public class Cut : MonoBehaviour
         {
             return new Vector3[] { v3, v1, v2 };
         }
-        return null;
+        else
+        {
+            Debug.LogFormat("Point {0:0.000} not on any edge", vertex);
+            return null;
+        }
     }
     public static bool IsClockwise(Vector3 p1, Vector3 p2, Vector3 p3)
     {
@@ -299,14 +389,23 @@ public class Cut : MonoBehaviour
     }
     void getCut(int id, Vector3 entry, Vector3 exit, int which)
     {
-        Debug.Log("Entered GetCut");
         if (id>=0)
         {
             if (entOnEdge == true && exitOnEdge == true)
             {
                 Vector3[] triangleVertices = GetTriangleVertices(id);
+                //Debug.LogFormat("Inside index {0}", id);
+                //Debug.LogFormat("v1 {0:0.000}", triangleVertices[0]);
+                //Debug.LogFormat("v2 {0:0.000}", triangleVertices[1]);
+                //Debug.LogFormat("v3 {0:0.000}", triangleVertices[2]);
+                Vector3 transitionPoint = CalculateTransitionPoint(entry, id);
+                entry = transitionPoint;
+                transitionPoint = CalculateTransitionPoint(exit, id);
+                exit = transitionPoint;
+                //Debug.LogFormat("entry {0:0.000}", entry);
+                //Debug.LogFormat("entry {0:0.000}", exit);
                 RemoveTriangle(id);
-                Debug.Log(string.Format("{0:0.000}", exit));
+                //Debug.Log(string.Format("{0:0.000}", exit));
                 Vector3[] notEntry = GetEdgeVertices(entry, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
                 Vector3[] notExit = GetEdgeVertices(exit, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
                 triangleVertices[2] = notEntry[2];
@@ -320,7 +419,6 @@ public class Cut : MonoBehaviour
                 Vector3 dir2 = triangleVertices[2] - triangleVertices[0];
                 Ray entRay = new Ray(triangleVertices[0], dir1);
                 Ray exiRay = new Ray(triangleVertices[0], dir2);
-                float offsetDistance = 0.02f;
                 Vector3 entry1 = entry - dir1.normalized * offsetDistance;
                 Vector3 entry2 = entry + dir1.normalized * offsetDistance;
                 Vector3 exit1 = exit - dir2.normalized * offsetDistance;
@@ -387,7 +485,6 @@ public class Cut : MonoBehaviour
                     Vector3 v3 = triangleVertices[2];
                     Vector3 dir = v2 - v1;
                     Ray ray = new Ray(v1, dir);
-                    float offsetDistance = 0.02f;
                     Vector3 exit1 = exit - dir.normalized * offsetDistance;
                     Vector3 exit2 = exit + dir.normalized * offsetDistance;
                     vertices.Add(v1);
@@ -419,7 +516,6 @@ public class Cut : MonoBehaviour
                     Vector3 v3 = triangleVertices[2];
                     Vector3 dir = v2 - v1;
                     Ray ray = new Ray(v1, dir);
-                    float offsetDistance = 0.02f;
                     Vector3 entry1 = entry - dir.normalized * offsetDistance;
                     Vector3 entry2 = entry + dir.normalized * offsetDistance;
                     vertices.Add(v1);
@@ -445,6 +541,6 @@ public class Cut : MonoBehaviour
                 }
             }
         }
-        Debug.Log("Exit GetCut");
+        //Debug.Log("Exit GetCut");
     }
 }
