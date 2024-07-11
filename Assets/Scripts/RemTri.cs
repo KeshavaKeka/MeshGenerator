@@ -48,6 +48,14 @@ public class RemTri : MonoBehaviour
             Debug.Log("MeshCollider added and set as trigger");
         }
 
+        Debug.Log($"RemTri Start - Mesh position: {transform.position}, Vertex count: {vertices.Count}");
+        // If you have a MeshRenderer component:
+        MeshRenderer renderer = GetComponent<MeshRenderer>();
+        if (renderer != null)
+        {
+            Debug.Log($"MeshRenderer - Enabled: {renderer.enabled}, Material: {renderer.material}");
+        }
+
         SelectConstantPoints();
         SetAndVisualizePoints();
     }
@@ -423,7 +431,7 @@ public class RemTri : MonoBehaviour
 
     public bool HasCutBeenMadeBetweenPoints()
     {
-        Debug.Log($"Checking if cut has been made: {cutMadeBetweenPoints}");
+        Debug.Log($"HasCutBeenMadeBetweenPoints called. Cut made: {cutMadeBetweenPoints}");
         return cutMadeBetweenPoints;
     }
 
@@ -435,6 +443,19 @@ public class RemTri : MonoBehaviour
     public void ResetCut()
     {
         cutMadeBetweenPoints = false;
+    }
+
+    public void ResetMesh()
+    {
+        Debug.Log("Resetting mesh");
+        vertices.Clear();
+        triangles.Clear();
+        CreateShape();
+        UpdateMesh();
+        ResetCut();
+        SelectConstantPoints();
+        SetAndVisualizePoints();
+        Debug.Log("Mesh reset complete");
     }
 
     // Public getter methods
