@@ -1,0 +1,42 @@
+{
+    "name": "root",
+    "metadata": {
+        "timer_format_version": "0.1.0",
+        "start_time_seconds": "1720694100",
+        "python_version": "3.9.19 (main, May  6 2024, 20:12:36) [MSC v.1916 64 bit (AMD64)]",
+        "command_line_arguments": "D:\\anaconda\\envs\\hummingbird\\Scripts\\mlagents-learn ./GAIL.yaml --run-id f2",
+        "mlagents_version": "0.30.0",
+        "mlagents_envs_version": "0.30.0",
+        "communication_protocol_version": "1.5.0",
+        "pytorch_version": "1.11.0+cpu",
+        "numpy_version": "1.21.2",
+        "end_time_seconds": "1720694109"
+    },
+    "total": 8.810265600000001,
+    "count": 1,
+    "self": 0.009843600000001729,
+    "children": {
+        "run_training.setup": {
+            "total": 0.10738179999999997,
+            "count": 1,
+            "self": 0.10738179999999997
+        },
+        "TrainerController.start_learning": {
+            "total": 8.693040199999999,
+            "count": 1,
+            "self": 0.0001640999999992232,
+            "children": {
+                "TrainerController._reset_env": {
+                    "total": 8.692864,
+                    "count": 1,
+                    "self": 8.692864
+                },
+                "TrainerController._save_models": {
+                    "total": 1.2099999999293232e-05,
+                    "count": 1,
+                    "self": 1.2099999999293232e-05
+                }
+            }
+        }
+    }
+}

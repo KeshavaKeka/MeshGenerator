@@ -7,6 +7,11 @@ using System.Collections.Generic;
 
 public class CuttingAgent : Agent
 {
+    [Header("Training Settings")]
+    public bool isTraining = true;
+    public float autoResetDelay = 1f; // Delay before starting a new episode
+
+
     private float episodeStartTime;
     private const float MIN_EPISODE_DURATION = 5f; // Adjust as needed
 
@@ -37,12 +42,21 @@ public class CuttingAgent : Agent
     private Vector3 initialSwordPosition;
     private Quaternion initialSwordRotation;
 
-    void Start()
+    private void Start()
     {
         initialXRRigPosition = XR_Rig.position;
         initialXRRigRotation = XR_Rig.rotation;
         initialSwordPosition = sword.position;
         initialSwordRotation = sword.rotation;
+
+        if (isTraining)
+        {
+            // Disable VR components if in training mode
+            if (XR_Rig.GetComponent<UnityEngine.XR.Interaction.Toolkit.XRRig>() != null)
+            {
+                XR_Rig.GetComponent<UnityEngine.XR.Interaction.Toolkit.XRRig>().enabled = false;
+            }
+        }
     }
 
 
@@ -79,6 +93,18 @@ public class CuttingAgent : Agent
             sword.Translate(movement * Time.deltaTime, Space.World);
             Debug.DrawRay(sword.position, movement, Color.red, 0.1f);
 
+            // Move the sword relative to the XR_Rig in training mode
+            if (isTraining)
+            {
+                sword.position = XR_Rig.position + XR_Rig.TransformDirection(movement * Time.deltaTime);
+            }
+            else
+            {
+                sword.Translate(movement * Time.deltaTime, Space.World);
+            }
+
+            Debug.DrawRay(sword.position, movement, Color.red, 0.1f);
+
             if (IsInCuttingRange(sword.position))
             {
                 float distanceToPoint1 = Vector3.Distance(sword.position, point1);
@@ -96,7 +122,7 @@ public class CuttingAgent : Agent
                 if (remTriScript.HasCutBeenMadeBetweenPoints() && CanEndEpisode())
                 {
                     AddReward(rewardForSuccessfulCut);
-                    EndEpisode();
+                    EndEpisodeWithReason("Successful cut");
                 }
             }
         }
@@ -107,7 +133,31 @@ public class CuttingAgent : Agent
     }
 
 
+    private void EndEpisodeWithReason(string reason)
+    {
+        if (episodeEnding) return;
 
+        episodeEnding = true;
+        AddReward(rewardForSuccessfulCut);
+        Debug.Log($"Ending episode. Reason: {reason}");
+        Academy.Instance.StatsRecorder.Add("EpisodeComplete", 1, StatAggregationMethod.Sum);
+
+        if (isTraining)
+        {
+            StartCoroutine(AutoResetEpisode());
+        }
+        else
+        {
+            EndEpisode();
+        }
+    }
+
+    private IEnumerator AutoResetEpisode()
+    {
+        yield return new WaitForSeconds(autoResetDelay);
+        EndEpisode();
+        OnEpisodeBegin();
+    }
 
 
     private bool CanEndEpisode()
@@ -121,17 +171,12 @@ public class CuttingAgent : Agent
 
         if (!episodeEnding && remTriScript.HasCutBeenMadeBetweenPoints())
         {
-            episodeEnding = true;
-            AddReward(rewardForSuccessfulCut);
-            Debug.Log("Cut made between points. Attempting to end episode.");
-            Academy.Instance.StatsRecorder.Add("EpisodeComplete", 1, StatAggregationMethod.Sum);
-            EndEpisode();
+            EndEpisodeWithReason("Cut made between points");
         }
 
         if (Time.time - episodeStartTime > MAX_EPISODE_DURATION)
         {
-            Debug.Log("Maximum episode duration reached. Ending episode.");
-            EndEpisode();
+            EndEpisodeWithReason("Maximum episode duration reached");
         }
     }
 
@@ -176,28 +221,25 @@ public class CuttingAgent : Agent
         Debug.Log("OnEpisodeBegin called.");
         StartCoroutine(InitializeEpisode());
         episodeStartTime = Time.time;
+        episodeEnding = false;
 
         Debug.Log("OnEpisodeBegin called. Resetting scene...");
 
-        // Reset the XR Rig position and rotation
-        XR_Rig.position = new Vector3(0, 1, -5); // Adjust as needed
-        XR_Rig.rotation = Quaternion.identity;
-
-        // Reset the sword position and rotation relative to the XR Rig
-        sword.position = XR_Rig.position + XR_Rig.forward + Vector3.up * 0.5f;
-        sword.rotation = Quaternion.identity;
+        // Reset positions
+        XR_Rig.position = initialXRRigPosition;
+        XR_Rig.rotation = initialXRRigRotation;
+        sword.position = initialSwordPosition;
+        sword.rotation = initialSwordRotation;
 
         // Reset the mesh and re-select the points
         remTriScript.ResetMesh();
 
-        episodeEnding = false;
         UpdateObservations();
-
-        Debug.Log($"Scene reset. XR_Rig: {XR_Rig.position}, Sword: {sword.position}");
 
         episodeCount++;
         Debug.Log($"Episode {episodeCount} started. Time: {Time.time}");
-    }
+ 
+}
 
 
 
@@ -244,6 +286,8 @@ public class CuttingAgent : Agent
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
+        if (isTraining) return; // Disable manual control during training
+
         var continuousActions = actionsOut.ContinuousActions;
         continuousActions[0] = Input.GetAxis("Horizontal");
         continuousActions[1] = Input.GetAxis("Vertical");
@@ -251,7 +295,7 @@ public class CuttingAgent : Agent
         if (Input.GetKeyDown(KeyCode.Space))
         {
             Debug.Log("Manual cut triggered");
-            remTriScript.ForceCutBetweenPoints(); // Add this method to RemTri
+            remTriScript.ForceCutBetweenPoints();
         }
     }
 }
