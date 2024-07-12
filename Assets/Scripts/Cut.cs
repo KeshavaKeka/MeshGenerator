@@ -20,6 +20,7 @@ public class Cut : MonoBehaviour
     Vector3 currentPosition;
     int previousTriangleID = -1;
     int currentTriangleID = -1;
+    float offsetDistance = 0.02f;
 
     void Start()
     {
@@ -44,7 +45,22 @@ public class Cut : MonoBehaviour
             previousTriangleID = currentTriangleID;
             currentTriangleID = GetTriangleID(currentPosition);
 
-            if (previousTriangleID != -1 && currentTriangleID != previousTriangleID)
+            if (currentTriangleID != 1 && previousTriangleID == -1)
+            {
+                Vector3 transitionPoint = CalculateTransitionPoint(currentPosition, currentTriangleID);
+                entry = transitionPoint;
+                entOnEdge = true;
+            }
+            else if (currentTriangleID == -1 && previousTriangleID != -1)
+            {
+                Vector3 transitionPoint = CalculateTransitionPoint(currentPosition, previousTriangleID);
+                exit = transitionPoint;
+                exitOnEdge = true;
+                getCut(previousTriangleID, entry, exit, 1);
+                entry = exit;
+                entOnEdge = true;
+            }
+            else if (previousTriangleID != -1 && currentTriangleID != previousTriangleID)
             {
                 // Calculate the actual transition point
                 Vector3 transitionPoint = CalculateTransitionPoint(currentPosition, previousTriangleID, currentTriangleID);
@@ -152,8 +168,11 @@ public class Cut : MonoBehaviour
             // Determine and log the final triangle ID for the exit point
             int exitTriangleID = GetTriangleID(exit);
             getCut(exitTriangleID, entry, exit, 0);
+            entry = exit;
+            entOnEdge = false;
         }
     }
+
     Vector3[] GetTriangleVertices(int triangleID)
     {
         if (triangleID < 0 || triangleID >= triangles.Count / 3)
@@ -223,6 +242,72 @@ public class Cut : MonoBehaviour
 
         // If no shared edge or any other issues, return the current position as fallback
         return currentPosition;
+    }
+
+    Vector3 CalculateTransitionPoint(Vector3 currentPosition, int TriangleID)
+    {
+        // Get the edge between the two triangles
+        Vector3[] edge = GetClosestEdge(TriangleID, currentPosition);
+
+        if (edge != null && edge.Length == 2)
+        {
+            // Project the current position onto the shared edge to get the transition point
+            Vector3 projection = ProjectPointOntoLineSegment(currentPosition, edge[0], edge[1]);
+            return projection;
+        }
+
+        // If no shared edge or any other issues, return the current position as fallback
+        return currentPosition;
+    }
+
+    Vector3[] GetClosestEdge(int triangleID, Vector3 point)
+    {
+        if (triangleID == -1) return null;
+
+        // Get vertices of the triangle
+        Vector3[] triangleVertices = {
+        vertices[triangles[triangleID * 3]],
+        vertices[triangles[triangleID * 3 + 1]],
+        vertices[triangles[triangleID * 3 + 2]]
+        };
+
+        // Define edges of the triangle
+        Vector3[][] edges = {
+        new Vector3[] { triangleVertices[0], triangleVertices[1] },
+        new Vector3[] { triangleVertices[1], triangleVertices[2] },
+        new Vector3[] { triangleVertices[2], triangleVertices[0] }
+        };
+
+        // Initialize the closest edge and the minimum distance
+        Vector3[] closestEdge = null;
+        float minDistance = float.MaxValue;
+
+        // Function to calculate distance from a point to a line segment
+        float DistancePointToSegment(Vector3 p, Vector3 v, Vector3 w)
+        {
+            // Return minimum distance between point p and line segment vw
+            float l2 = Vector3.SqrMagnitude(w - v); // i.e. |w-v|^2 -  avoid a sqrt
+            if (l2 == 0.0) return Vector3.Distance(p, v); // v == w case
+                                                          // Consider the line extending the segment, parameterized as v + t (w - v).
+                                                          // We find projection of point p onto the line.
+                                                          // It falls where t = [(p-v) . (w-v)] / |w-v|^2
+            float t = Mathf.Max(0, Mathf.Min(1, Vector3.Dot(p - v, w - v) / l2));
+            Vector3 projection = v + t * (w - v); // Projection falls on the segment
+            return Vector3.Distance(p, projection);
+        }
+
+        // Find the closest edge
+        foreach (var edge in edges)
+        {
+            float distance = DistancePointToSegment(point, edge[0], edge[1]);
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                closestEdge = edge;
+            }
+        }
+
+        return closestEdge;
     }
 
     Vector3[] GetSharedEdge(int triangleID1, int triangleID2)
@@ -321,147 +406,162 @@ public class Cut : MonoBehaviour
     }
     void getCut(int id, Vector3 entry, Vector3 exit, int which)
     {
-        if(id>-1)
+        if (id >= 0)
         {
-            if (entOnEdge == true && exitOnEdge == true)
+            Vector3[] triangleVertices = GetTriangleVertices(id);
+            bool entryCheck = triangleVertices[0] != entry && triangleVertices[1] != entry && triangleVertices[2] != entry;
+            bool exitCheck = triangleVertices[0] != exit && triangleVertices[1] != exit && triangleVertices[2] != exit;
+            if (entryCheck && exitCheck)
             {
-                Vector3[] triangleVertices = GetTriangleVertices(id);
-                RemoveTriangle(id);
-                Vector3[] notEntry = GetEdgeVertices(entry, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
-                Vector3[] notExit = GetEdgeVertices(exit, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
-                triangleVertices[2] = notEntry[2];
-                triangleVertices[1] = notExit[2];
-                for (int i = 0; i < 2; i++)
+                if (entOnEdge == true && exitOnEdge == true)
                 {
-                    if (notEntry[i] != notEntry[2] && notEntry[i] != notExit[2])
-                        triangleVertices[0] = notEntry[i];
+                    //Debug.LogFormat("Inside index {0}", id);
+                    //Debug.LogFormat("v1 {0:0.000}", triangleVertices[0]);
+                    //Debug.LogFormat("v2 {0:0.000}", triangleVertices[1]);
+                    //Debug.LogFormat("v3 {0:0.000}", triangleVertices[2]);
+                    Vector3 transitionPoint = CalculateTransitionPoint(entry, id);
+                    entry = transitionPoint;
+                    transitionPoint = CalculateTransitionPoint(exit, id);
+                    exit = transitionPoint;
+                    //Debug.LogFormat("entry {0:0.000}", entry);
+                    //Debug.LogFormat("entry {0:0.000}", exit);
+                    //RemoveTriangle(id);
+                    //Debug.Log(string.Format("{0:0.000}", exit));
+                    Vector3[] notEntry = GetEdgeVertices(entry, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
+                    Vector3[] notExit = GetEdgeVertices(exit, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
+                    if (notEntry[2] != notExit[2])
+                    {
+                        triangleVertices[2] = notEntry[2];
+                        triangleVertices[1] = notExit[2];
+                        for (int i = 0; i < 2; i++)
+                        {
+                            if (notEntry[i] != notEntry[2] && notEntry[i] != notExit[2])
+                                triangleVertices[0] = notEntry[i];
+                        }
+                        Vector3 dir1 = triangleVertices[1] - triangleVertices[0];
+                        Vector3 dir2 = triangleVertices[2] - triangleVertices[0];
+                        Ray entRay = new Ray(triangleVertices[0], dir1);
+                        Ray exiRay = new Ray(triangleVertices[0], dir2);
+                        Vector3 entry1 = entry - dir1.normalized * offsetDistance;
+                        Vector3 entry2 = entry + dir1.normalized * offsetDistance;
+                        Vector3 exit1 = exit - dir2.normalized * offsetDistance;
+                        Vector3 exit2 = exit + dir2.normalized * offsetDistance;
+                        vertices.Add(triangleVertices[0]);
+                        vertices.Add(triangleVertices[1]);
+                        vertices.Add(triangleVertices[2]);
+                        vertices.Add(entry1);
+                        vertices.Add(entry2);
+                        vertices.Add(exit1);
+                        vertices.Add(exit2);
+                        if (IsClockwise(triangleVertices[0], entry1, exit1))
+                        {
+                            triangles[id * 3 + 0] = numVertices;
+                            triangles[id * 3 + 1] = numVertices + 5;
+                            triangles[id * 3 + 2] = numVertices + 3;
+                        }
+                        else
+                        {
+                            triangles[id * 3 + 0] = numVertices;
+                            triangles[id * 3 + 1] = numVertices + 3;
+                            triangles[id * 3 + 2] = numVertices + 5;
+                        }
+                        if (IsClockwise(entry2, triangleVertices[1], exit2))
+                        {
+                            triangles.Add(numVertices + 4);
+                            triangles.Add(numVertices + 6);
+                            triangles.Add(numVertices + 1);
+                        }
+                        else
+                        {
+                            triangles.Add(numVertices + 4);
+                            triangles.Add(numVertices + 1);
+                            triangles.Add(numVertices + 6);
+                        }
+                        if (IsClockwise(triangleVertices[1], triangleVertices[2], exit2))
+                        {
+                            triangles.Add(numVertices + 1);
+                            triangles.Add(numVertices + 6);
+                            triangles.Add(numVertices + 2);
+                        }
+                        else
+                        {
+                            triangles.Add(numVertices + 1);
+                            triangles.Add(numVertices + 2);
+                            triangles.Add(numVertices + 6);
+                        }
+                        UpdateMesh();
+                        numVertices += 7;
+                    }
                 }
-                Vector3 dir1 = triangleVertices[1] - triangleVertices[0];
-                Vector3 dir2 = triangleVertices[2] - triangleVertices[0];
-                Ray entRay = new Ray(triangleVertices[0], dir1);
-                Ray exiRay = new Ray(triangleVertices[0], dir2);
-                float offsetDistance = 0.02f;
-                Vector3 entry1 = entry - dir1.normalized * offsetDistance;
-                Vector3 entry2 = entry + dir1.normalized * offsetDistance;
-                Vector3 exit1 = exit - dir2.normalized * offsetDistance;
-                Vector3 exit2 = exit + dir2.normalized * offsetDistance;
-                vertices.Add(triangleVertices[0]);
-                vertices.Add(triangleVertices[1]);
-                vertices.Add(triangleVertices[2]);
-                vertices.Add(entry1);
-                vertices.Add(entry2);
-                vertices.Add(exit1);
-                vertices.Add(exit2);
-                if (IsClockwise(triangleVertices[0], entry1, exit1))
+                else if (entOnEdge == false && exitOnEdge == false)
                 {
-                    triangles[id * 3 + 0] = numVertices;
-                    triangles[id * 3 + 1] = numVertices + 5;
-                    triangles[id * 3 + 2] = numVertices + 3;
-                }
-                else
-                {
-                    triangles[id * 3 + 0] = numVertices;
-                    triangles[id * 3 + 1] = numVertices + 3;
-                    triangles[id * 3 + 2] = numVertices + 5;
-                }
-                if (IsClockwise(entry2, triangleVertices[1], exit2))
-                {
-                    triangles.Add(numVertices + 4);
-                    triangles.Add(numVertices + 6);
-                    triangles.Add(numVertices + 1);
-                }
-                else
-                {
-                    triangles.Add(numVertices + 4);
-                    triangles.Add(numVertices + 1);
-                    triangles.Add(numVertices + 6);
-                }
-                if (IsClockwise(triangleVertices[1], triangleVertices[2], exit2))
-                {
-                    triangles.Add(numVertices + 1);
-                    triangles.Add(numVertices + 6);
-                    triangles.Add(numVertices + 2);
-                }
-                else
-                {
-                    triangles.Add(numVertices + 1);
-                    triangles.Add(numVertices + 2);
-                    triangles.Add(numVertices + 6);
-                }
-                UpdateMesh();
-                numVertices += 7;
-            }
-            else if (entOnEdge == false && exitOnEdge == false)
-            {
-                Debug.Log("0");
-            }
-            else
-            {
-                Vector3[] triangleVertices = GetTriangleVertices(id);
-                RemoveTriangle(id);
-                if (which == 1)
-                {
-                    triangleVertices = GetEdgeVertices(exit, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
-                    Vector3 v1 = triangleVertices[0];
-                    Vector3 v2 = triangleVertices[1];
-                    Vector3 v3 = triangleVertices[2];
-                    Vector3 dir = v2 - v1;
-                    Ray ray = new Ray(v1, dir);
-                    float offsetDistance = 0.02f;
-                    Vector3 exit1 = exit - dir.normalized * offsetDistance;
-                    Vector3 exit2 = exit + dir.normalized * offsetDistance;
-                    vertices.Add(v1);
-                    vertices.Add(v2);
-                    vertices.Add(v3);
-                    vertices.Add(entry);
-                    vertices.Add(exit1);
-                    vertices.Add(exit2);
-                    triangles[id * 3 + 0] = numVertices;
-                    triangles[id * 3 + 1] = numVertices + 4;
-                    triangles[id * 3 + 2] = numVertices + 3;
-                    triangles.Add(numVertices);
-                    triangles.Add(numVertices + 3);
-                    triangles.Add(numVertices + 2);
-                    triangles.Add(numVertices + 3);
-                    triangles.Add(numVertices + 1);
-                    triangles.Add(numVertices + 2);
-                    triangles.Add(numVertices + 3);
-                    triangles.Add(numVertices + 5);
-                    triangles.Add(numVertices + 1);
-                    numVertices += 6;
-                    UpdateMesh();
+                    Debug.Log("0");
                 }
                 else
                 {
-                    triangleVertices = GetEdgeVertices(entry, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
-                    Vector3 v1 = triangleVertices[0];
-                    Vector3 v2 = triangleVertices[1];
-                    Vector3 v3 = triangleVertices[2];
-                    Vector3 dir = v2 - v1;
-                    Ray ray = new Ray(v1, dir);
-                    float offsetDistance = 0.02f;
-                    Vector3 entry1 = entry - dir.normalized * offsetDistance;
-                    Vector3 entry2 = entry + dir.normalized * offsetDistance;
-                    vertices.Add(v1);
-                    vertices.Add(v2);
-                    vertices.Add(v3);
-                    vertices.Add(entry1);
-                    vertices.Add(entry2);
-                    vertices.Add(exit);
-                    triangles[id * 3 + 0] = numVertices + 3;
-                    triangles[id * 3 + 1] = numVertices + 5;
-                    triangles[id * 3 + 2] = numVertices;
-                    triangles.Add(numVertices + 5);
-                    triangles.Add(numVertices + 2);
-                    triangles.Add(numVertices);
-                    triangles.Add(numVertices + 4);
-                    triangles.Add(numVertices + 1);
-                    triangles.Add(numVertices + 5);
-                    triangles.Add(numVertices + 5);
-                    triangles.Add(numVertices + 1);
-                    triangles.Add(numVertices + 2);
-                    numVertices += 6;
-                    UpdateMesh();
+                    //RemoveTriangle(id);
+                    if (which == 1)
+                    {
+                        triangleVertices = GetEdgeVertices(exit, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
+                        Vector3 v1 = triangleVertices[0];
+                        Vector3 v2 = triangleVertices[1];
+                        Vector3 v3 = triangleVertices[2];
+                        Vector3 dir = v2 - v1;
+                        Ray ray = new Ray(v1, dir);
+                        Vector3 exit1 = exit - dir.normalized * offsetDistance;
+                        Vector3 exit2 = exit + dir.normalized * offsetDistance;
+                        vertices.Add(v1);
+                        vertices.Add(v2);
+                        vertices.Add(v3);
+                        vertices.Add(entry);
+                        vertices.Add(exit1);
+                        vertices.Add(exit2);
+                        triangles[id * 3 + 0] = numVertices;
+                        triangles[id * 3 + 1] = numVertices + 4;
+                        triangles[id * 3 + 2] = numVertices + 3;
+                        triangles.Add(numVertices);
+                        triangles.Add(numVertices + 3);
+                        triangles.Add(numVertices + 2);
+                        triangles.Add(numVertices + 3);
+                        triangles.Add(numVertices + 1);
+                        triangles.Add(numVertices + 2);
+                        triangles.Add(numVertices + 3);
+                        triangles.Add(numVertices + 5);
+                        triangles.Add(numVertices + 1);
+                        numVertices += 6;
+                        UpdateMesh();
+                    }
+                    else
+                    {
+                        triangleVertices = GetEdgeVertices(entry, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
+                        Vector3 v1 = triangleVertices[0];
+                        Vector3 v2 = triangleVertices[1];
+                        Vector3 v3 = triangleVertices[2];
+                        Vector3 dir = v2 - v1;
+                        Ray ray = new Ray(v1, dir);
+                        Vector3 entry1 = entry - dir.normalized * offsetDistance;
+                        Vector3 entry2 = entry + dir.normalized * offsetDistance;
+                        vertices.Add(v1);
+                        vertices.Add(v2);
+                        vertices.Add(v3);
+                        vertices.Add(entry1);
+                        vertices.Add(entry2);
+                        vertices.Add(exit);
+                        triangles[id * 3 + 0] = numVertices + 3;
+                        triangles[id * 3 + 1] = numVertices + 5;
+                        triangles[id * 3 + 2] = numVertices;
+                        triangles.Add(numVertices + 5);
+                        triangles.Add(numVertices + 2);
+                        triangles.Add(numVertices);
+                        triangles.Add(numVertices + 4);
+                        triangles.Add(numVertices + 1);
+                        triangles.Add(numVertices + 5);
+                        triangles.Add(numVertices + 5);
+                        triangles.Add(numVertices + 1);
+                        triangles.Add(numVertices + 2);
+                        numVertices += 6;
+                        UpdateMesh();
+                    }
                 }
             }
         }
