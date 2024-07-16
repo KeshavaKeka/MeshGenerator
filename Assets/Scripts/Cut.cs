@@ -491,6 +491,8 @@ public class Cut : MonoBehaviour
                     //RemoveTriangle(id);
                     if (which == 1)
                     {
+                        Vector3 transitionPoint = CalculateTransitionPoint(exit, id);
+                        exit = transitionPoint;
                         triangleVertices = GetEdgeVertices(exit, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
                         Vector3 v1 = triangleVertices[0];
                         Vector3 v2 = triangleVertices[1];
@@ -522,6 +524,8 @@ public class Cut : MonoBehaviour
                     }
                     else
                     {
+                        Vector3 transitionPoint = CalculateTransitionPoint(entry, id);
+                        entry = transitionPoint;
                         triangleVertices = GetEdgeVertices(entry, triangleVertices[0], triangleVertices[1], triangleVertices[2]);
                         Vector3 v1 = triangleVertices[0];
                         Vector3 v2 = triangleVertices[1];
