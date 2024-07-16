@@ -494,12 +494,12 @@ public class Car : MonoBehaviour
             bool exitCheck = triangleVertices[0] != exit && triangleVertices[1] != exit && triangleVertices[2] != exit;
             if (entryCheck && exitCheck)
             {
-                print("holla");
-                Debug.Log(triangleVertices[0]);
-                Debug.Log(triangleVertices[1]);
-                Debug.Log(triangleVertices[2]);
-                Debug.Log(entry);
-                Debug.Log(exit);
+                //print("holla");
+                //Debug.Log(triangleVertices[0]);
+                //Debug.Log(triangleVertices[1]);
+                //Debug.Log(triangleVertices[2]);
+                //Debug.Log(entry);
+                //Debug.Log(exit);
                 if (entOnEdge == true && exitOnEdge == true)
                 {
                     //Debug.LogFormat("Inside index {0}", id);

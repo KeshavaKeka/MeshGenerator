@@ -221,7 +221,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   filePathVertices: Assets/Mesh/meshVertices.txt
   filePathTriangles: Assets/Mesh/MeshTriangles.txt
-  collidingObject: {fileID: 865132689}
   stick: {fileID: 865132689}
 --- !u!1 &865132689
 GameObject:
@@ -256,7 +255,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51136146d091840668583cb7e24e5cb0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 2
+  moveSpeed: 1
 --- !u!65 &865132691
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -336,13 +335,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 865132689}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.5, y: 0.5, z: 0.5, w: 0.5}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.09, y: 2.57, z: -2.82}
-  m_LocalScale: {x: 0.01, y: 1, z: 0.01}
+  m_LocalScale: {x: 0.01, y: 0.3, z: 0.01}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 90}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &865132695
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -574,13 +573,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1191260505}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.19648048, y: -0, z: -0, w: 0.9805078}
-  m_LocalPosition: {x: 0, y: 2, z: -4.02}
+  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 3, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 22.662, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!114 &1191260509
 MonoBehaviour:
   m_ObjectHideFlags: 0
