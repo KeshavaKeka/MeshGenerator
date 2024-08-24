@@ -23,11 +23,44 @@ public class RemTri : MonoBehaviour
 
     void Start()
     {
+        // Convert the mesh to a skinned mesh
+        SkinnedMeshRenderer skinnedMeshRenderer = gameObject.AddComponent<SkinnedMeshRenderer>();
+
+        // Create and set the mesh
         mesh = new Mesh();
+        InitializeMesh();
+        skinnedMeshRenderer.sharedMesh = mesh;
         GetComponent<MeshFilter>().mesh = mesh;
-        CreateShape();
-        numVertices = vertices.Count;
-        UpdateMesh();
+        // Initialize the mesh and cloth properties
+        // Create and assign a bone
+        Transform bone = new GameObject("Bone").transform;
+        bone.SetParent(transform);
+        bone.localPosition = Vector3.zero;
+
+        // Set bone weights
+        BoneWeight[] boneWeights = new BoneWeight[mesh.vertexCount];
+        for (int i = 0; i < boneWeights.Length; i++)
+        {
+            boneWeights[i].boneIndex0 = 0;
+            boneWeights[i].weight0 = 1.0f;
+        }
+        mesh.boneWeights = boneWeights;
+
+        // Set bind poses
+        Matrix4x4[] bindPoses = new Matrix4x4[1];
+        bindPoses[0] = bone.worldToLocalMatrix * transform.localToWorldMatrix;
+        mesh.bindposes = bindPoses;
+
+        // Assign bones to the skinned mesh renderer
+        skinnedMeshRenderer.bones = new Transform[] { bone };
+
+        // Add Cloth component
+        Cloth cloth = gameObject.AddComponent<Cloth>();
+
+        // Initialize the cloth properties
+        InitializeCloth(cloth);
+        /*CreateShape();
+        UpdateMesh();*/
 
         MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
         if (meshCollider != null)
@@ -347,5 +380,59 @@ public class RemTri : MonoBehaviour
         if (id > -1)
             RemoveQuad(id);
     }
+    void InitializeMesh()
+    {
+        // Your existing mesh creation logic
+        CreateShape();
+        numVertices = vertices.Count;
+        UpdateMesh();
+    }
+
+    void InitializeCloth(Cloth cloth)
+    {
+        // Set up cloth physics properties
+        cloth.bendingStiffness = 0.5f;
+        cloth.stretchingStiffness = 0.7f;
+        cloth.damping = 0.2f;
+        cloth.friction = 0.5f;
+        cloth.useGravity = true;
+        cloth.selfCollisionDistance = 0.1f;
+        cloth.selfCollisionStiffness = 0.5f;
+
+        // Set cloth constraints
+        SetClothConstraints(cloth);
+    }
+
+    void SetClothConstraints(Cloth cloth)
+{
+    // Get the number of vertices in the mesh
+    int numVertices = verticesAlongX * verticesAlongY;
+
+    // Create an array to hold the constraints
+    ClothSkinningCoefficient[] constraints = new ClothSkinningCoefficient[numVertices];
+
+    // Loop through each vertex
+    for (int i = 0; i < numVertices; i++)
+    {
+        // Initialize the coefficient for each vertex
+        ClothSkinningCoefficient coefficient = new ClothSkinningCoefficient();
+
+        // Pin the top row vertices by setting maxDistance to 0
+        if (i < verticesAlongX)
+        {
+            coefficient.maxDistance = 0.0f;  // Pin vertex
+        }
+        else
+        {
+            coefficient.maxDistance = 1.0f;  // Allow vertex to move
+        }
+
+        constraints[i] = coefficient;
+    }
+
+    // Apply the constraints to the cloth component
+    cloth.coefficients = constraints;
+}
 
 }
+
