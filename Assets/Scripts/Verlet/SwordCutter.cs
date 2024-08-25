@@ -1,36 +1,25 @@
 using UnityEngine;
+using UnityEngine.XR.Interaction.Toolkit;
 
 public class SwordCutter : MonoBehaviour
 {
-    public Transform rayOrigin;
-    public float rayLength = 1.0f;
-    public float cutFrequency = 0.1f; // Cut every 0.1 seconds
-    private float lastCutTime = 0f;
+    private XRGrabInteractable grabInteractable;
 
-    private void Update()
+    void Start()
     {
-        if (Time.time - lastCutTime >= cutFrequency)
+        grabInteractable = GetComponent<XRGrabInteractable>();
+        if (grabInteractable == null)
         {
-            PerformCut();
-            lastCutTime = Time.time;
+            grabInteractable = gameObject.AddComponent<XRGrabInteractable>();
         }
+
+        // Configure the grab interactable
+        grabInteractable.movementType = XRBaseInteractable.MovementType.VelocityTracking;
+        grabInteractable.throwOnDetach = true;
     }
 
-    private void PerformCut()
+    void Update()
     {
-        // Use OverlapBox to detect the Verlet3D objects within the trigger area
-        Collider[] colliders = Physics.OverlapBox(rayOrigin.position, rayOrigin.localScale / 2, rayOrigin.rotation);
-
-        foreach (Collider collider in colliders)
-        {
-            Verlet3D verlet = collider.GetComponentInParent<Verlet3D>();
-            if (verlet != null)
-            {
-                Vector3 hitPoint = collider.ClosestPoint(rayOrigin.position);
-                verlet.Cut(hitPoint);
-            }
-        }
-
-        Debug.DrawRay(rayOrigin.position, rayOrigin.up * rayLength, Color.red, cutFrequency);
+        // You can add additional sword-specific behavior here if needed
     }
 }

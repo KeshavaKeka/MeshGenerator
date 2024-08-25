@@ -5,12 +5,16 @@ public class Verlet3D : MonoBehaviour
 {
     public int rows = 10;
     public int columns = 10;
+    public float spacing = 0.5f;
     public float cutDistance = 0.2f;
+    public GameObject swordPrefab; // Assign this in the Unity Inspector
+    public Transform swordSpawnPoint;
+
+    private GameObject sword;
     public Material nodeMaterial;
     public Material edgeMaterial;
     public Material triangleMaterial;
 
-    private float spacing = 0.5f;
     private List<GameObject> spheres;
     private List<Particle> particles;
     private List<Connector> connectors;
@@ -18,6 +22,7 @@ public class Verlet3D : MonoBehaviour
 
     void Start()
     {
+        sword = Instantiate(swordPrefab, swordSpawnPoint.position, Quaternion.identity);
         Vector3 spawnParticlePos = new Vector3(0, 0, 0);
 
         spheres = new List<GameObject>();
@@ -192,6 +197,7 @@ public class Verlet3D : MonoBehaviour
 
     void FixedUpdate()
     {
+        CheckSwordCollision();
         for (int p = 0; p < particles.Count; p++)
         {
             Particle point = particles[p];
@@ -253,6 +259,27 @@ public class Verlet3D : MonoBehaviour
             };
             triangle.meshFilter.mesh.vertices = vertices;
             triangle.meshFilter.mesh.RecalculateNormals();
+        }
+    }
+
+    void CheckSwordCollision()
+    {
+        // Get the sword's position and rotation
+        Vector3 swordTip = sword.transform.position + sword.transform.forward * (sword.transform.localScale.z / 2);
+        Vector3 swordBase = sword.transform.position - sword.transform.forward * (sword.transform.localScale.z / 2);
+
+        for (int i = connectors.Count - 1; i >= 0; i--)
+        {
+            Vector3 closestPoint = ClosestPointOnLineSegment(swordBase, swordTip, connectors[i].point0.pos);
+            float distToPoint0 = Vector3.Distance(closestPoint, connectors[i].point0.pos);
+            float distToPoint1 = Vector3.Distance(closestPoint, connectors[i].point1.pos);
+
+            // Check if the sword is close enough to either end of the connector
+            if (distToPoint0 <= cutDistance || distToPoint1 <= cutDistance)
+            {
+                RemoveConnector(connectors[i]);
+                connectors.RemoveAt(i);
+            }
         }
     }
 
