@@ -1615,10 +1615,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 67e5f8614631c924e9e52608dd1e6640, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  rows: 5
-  columns: 18
-  spacing: 0.5
+  rows: 10
+  columns: 50
+  spacing: 0.2
   cutDistance: 0.2
+  nodeSize: {x: 0.01, y: 0.01, z: 0.01}
+  lineThickness: 0.001
   swordPrefab: {fileID: 5206347616983374081, guid: 7faa9987b444dc64f9390452bcaa90d3,
     type: 3}
   swordSpawnPoint: {fileID: 1011535430}

@@ -7,6 +7,8 @@ public class Verlet3D : MonoBehaviour
     public int columns = 10;
     public float spacing = 0.5f;
     public float cutDistance = 0.2f;
+    public Vector3 nodeSize = new Vector3(0.01f, 0.01f, 0.01f);
+    public float lineThickness = 0.001f;
     public GameObject swordPrefab; // Assign this in the Unity Inspector
     public Transform swordSpawnPoint;
 
@@ -38,7 +40,7 @@ public class Verlet3D : MonoBehaviour
                 var mat = sphere.GetComponent<Renderer>();
                 mat.material = nodeMaterial;
                 sphere.transform.position = new Vector3(0, spawnParticlePos.y, spawnParticlePos.z);
-                sphere.transform.localScale = new Vector3(0.1f, 0.1f, 0.1f);
+                sphere.transform.localScale = nodeSize;
 
                 Particle point = new Particle();
                 point.pinnedPos = new Vector3(0, spawnParticlePos.y, spawnParticlePos.z);
@@ -245,8 +247,8 @@ public class Verlet3D : MonoBehaviour
                 connectors[i].p1.transform.position
             };
             connectors[i].lineRender.SetPositions(points);
-            connectors[i].lineRender.startWidth = 0.04f;
-            connectors[i].lineRender.endWidth = 0.04f;
+            connectors[i].lineRender.startWidth = lineThickness;
+            connectors[i].lineRender.endWidth = lineThickness;
         }
 
         for (int i = 0; i < triangles.Count; i++)
