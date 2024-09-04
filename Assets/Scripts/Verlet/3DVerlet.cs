@@ -1,15 +1,14 @@
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 public class Verlet3D : MonoBehaviour
 {
-    public int rows = 10;
-    public int columns = 10;
-    public float spacing = 0.5f;
+    public string objFilePath = "Assets/Resources/cylinder.obj";
     public float cutDistance = 0.2f;
     public Vector3 nodeSize = new Vector3(0.01f, 0.01f, 0.01f);
     public float lineThickness = 0.001f;
-    public GameObject swordPrefab; // Assign this in the Unity Inspector
+    public GameObject swordPrefab;
     public Transform swordSpawnPoint;
 
     private GameObject sword;
@@ -25,62 +24,85 @@ public class Verlet3D : MonoBehaviour
     void Start()
     {
         sword = Instantiate(swordPrefab, swordSpawnPoint.position, Quaternion.identity);
-        Vector3 spawnParticlePos = new Vector3(0, 0, 0);
 
         spheres = new List<GameObject>();
         particles = new List<Particle>();
         connectors = new List<Connector>();
         triangles = new List<Triangle>();
 
-        for (int y = 0; y <= rows; y++)
-        {
-            for (int x = 0; x <= columns; x++)
-            {
-                GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                var mat = sphere.GetComponent<Renderer>();
-                mat.material = nodeMaterial;
-                sphere.transform.position = new Vector3(0, spawnParticlePos.y, spawnParticlePos.z);
-                sphere.transform.localScale = nodeSize;
-
-                Particle point = new Particle();
-                point.pinnedPos = new Vector3(0, spawnParticlePos.y, spawnParticlePos.z);
-                point.pos = point.pinnedPos;
-                point.oldPos = point.pinnedPos;
-
-                if (x != 0)
-                {
-                    CreateConnector(sphere, spheres[spheres.Count - 1], point, particles[particles.Count - 1]);
-                }
-
-                if (y != 0)
-                {
-                    CreateConnector(sphere, spheres[(y - 1) * (columns + 1) + x], point, particles[(y - 1) * (columns + 1) + x]);
-                }
-
-                if (x != 0 && y != 0)
-                {
-                    CreateTriangle(sphere, spheres[spheres.Count - 1], spheres[(y - 1) * (columns + 1) + x - 1]);
-                    CreateTriangle(sphere, spheres[(y - 1) * (columns + 1) + x], spheres[(y - 1) * (columns + 1) + x - 1]);
-                }
-
-                if (y == 0)
-                {
-                    point.pinned = true;
-                }
-
-                spawnParticlePos.z -= spacing;
-
-                spheres.Add(sphere);
-                particles.Add(point);
-            }
-
-            spawnParticlePos.z = 0;
-            spawnParticlePos.y -= spacing;
-        }
+        LoadObjFile(objFilePath);
 
         // Add a collider to detect cuts
         BoxCollider collider = gameObject.AddComponent<BoxCollider>();
         collider.isTrigger = true;
+
+        // Output information to separate files
+        OutputVertices("vertices.txt");
+        OutputEdges("edges.txt");
+        OutputTriangles("triangles.txt");
+    }
+
+    void LoadObjFile(string filePath)
+    {
+        string[] lines = File.ReadAllLines(filePath);
+        List<Vector3> vertices = new List<Vector3>();
+        List<int> triangleIndices = new List<int>();
+
+        foreach (string line in lines)
+        {
+            string[] parts = line.Split(' ');
+            if (parts[0] == "v")
+            {
+                float x = float.Parse(parts[1]);
+                float y = float.Parse(parts[2]);
+                float z = float.Parse(parts[3]);
+                vertices.Add(new Vector3(x, y, z));
+            }
+            else if (parts[0] == "f")
+            {
+                for (int i = 1; i <= 3; i++)
+                {
+                    int vertexIndex = int.Parse(parts[i].Split('/')[0]) - 1;
+                    triangleIndices.Add(vertexIndex);
+                }
+            }
+        }
+
+        // Create particles and spheres
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            var mat = sphere.GetComponent<Renderer>();
+            mat.material = nodeMaterial;
+            sphere.transform.position = vertices[i];
+            sphere.transform.localScale = nodeSize;
+
+            Particle point = new Particle
+            {
+                pinnedPos = vertices[i],
+                pos = vertices[i],
+                oldPos = vertices[i],
+                gravity = 0f, // Disable gravity
+                pinned = false // No pinned vertices
+            };
+
+            spheres.Add(sphere);
+            particles.Add(point);
+        }
+
+        // Create connectors and triangles
+        for (int i = 0; i < triangleIndices.Count; i += 3)
+        {
+            int index0 = triangleIndices[i];
+            int index1 = triangleIndices[i + 1];
+            int index2 = triangleIndices[i + 2];
+
+            CreateConnector(spheres[index0], spheres[index1], particles[index0], particles[index1]);
+            CreateConnector(spheres[index1], spheres[index2], particles[index1], particles[index2]);
+            CreateConnector(spheres[index2], spheres[index0], particles[index2], particles[index0]);
+
+            CreateTriangle(spheres[index0], spheres[index1], spheres[index2]);
+        }
     }
 
     void CreateConnector(GameObject p0, GameObject p1, Particle point0, Particle point1)
@@ -107,7 +129,7 @@ public class Verlet3D : MonoBehaviour
 
         MeshFilter meshFilter = triangleObj.AddComponent<MeshFilter>();
         MeshRenderer meshRenderer = triangleObj.AddComponent<MeshRenderer>();
-        MeshCollider meshCollider = triangleObj.AddComponent<MeshCollider>(); // Add MeshCollider
+        MeshCollider meshCollider = triangleObj.AddComponent<MeshCollider>();
 
         Mesh mesh = new Mesh();
         mesh.vertices = new Vector3[] { p0.transform.position, p1.transform.position, p2.transform.position };
@@ -116,8 +138,6 @@ public class Verlet3D : MonoBehaviour
 
         meshFilter.mesh = mesh;
         meshRenderer.material = triangleMaterial;
-
-        // Assign the mesh to the MeshCollider
         meshCollider.sharedMesh = mesh;
 
         Triangle triangle = new Triangle
@@ -127,7 +147,7 @@ public class Verlet3D : MonoBehaviour
             p2 = p2,
             meshFilter = meshFilter,
             meshRenderer = meshRenderer,
-            meshCollider = meshCollider // Store the MeshCollider reference if needed
+            meshCollider = meshCollider
         };
 
         triangles.Add(triangle);
@@ -138,14 +158,14 @@ public class Verlet3D : MonoBehaviour
         SwordCutter sword = other.GetComponent<SwordCutter>();
         if (sword != null)
         {
-            Vector3 hitPoint = sword.transform.position; // Modify if necessary to get the exact hit point
+            Vector3 hitPoint = sword.transform.position;
             Cut(hitPoint);
         }
     }
 
     public void Cut(Vector3 hitPoint)
     {
-        print("Cut");
+        Debug.Log("Cut");
         for (int i = connectors.Count - 1; i >= 0; i--)
         {
             Vector3 closestPoint = ClosestPointOnLineSegment(connectors[i].point0.pos, connectors[i].point1.pos, hitPoint);
@@ -212,21 +232,15 @@ public class Verlet3D : MonoBehaviour
             }
         }
 
-        var startDistance = spacing;
         for (int i = 0; i < connectors.Count; i++)
         {
             float dist = Vector3.Distance(connectors[i].point0.pos, connectors[i].point1.pos);
+            float startDistance = Vector3.Distance(connectors[i].point0.pinnedPos, connectors[i].point1.pinnedPos);
             float error = Mathf.Abs(dist - startDistance);
 
-            Vector3 changeDir;
-            if (dist > startDistance)
-            {
-                changeDir = (connectors[i].point0.pos - connectors[i].point1.pos).normalized;
-            }
-            else
-            {
-                changeDir = (connectors[i].point1.pos - connectors[i].point0.pos).normalized;
-            }
+            Vector3 changeDir = (dist > startDistance) ?
+                (connectors[i].point0.pos - connectors[i].point1.pos).normalized :
+                (connectors[i].point1.pos - connectors[i].point0.pos).normalized;
 
             Vector3 changeAmount = changeDir * error;
             if (!connectors[i].point0.pinned)
@@ -266,7 +280,6 @@ public class Verlet3D : MonoBehaviour
 
     void CheckSwordCollision()
     {
-        // Get the sword's position and rotation
         Vector3 swordTip = sword.transform.position + sword.transform.forward * (sword.transform.localScale.z / 2);
         Vector3 swordBase = sword.transform.position - sword.transform.forward * (sword.transform.localScale.z / 2);
 
@@ -276,11 +289,43 @@ public class Verlet3D : MonoBehaviour
             float distToPoint0 = Vector3.Distance(closestPoint, connectors[i].point0.pos);
             float distToPoint1 = Vector3.Distance(closestPoint, connectors[i].point1.pos);
 
-            // Check if the sword is close enough to either end of the connector
             if (distToPoint0 <= cutDistance || distToPoint1 <= cutDistance)
             {
                 RemoveConnector(connectors[i]);
                 connectors.RemoveAt(i);
+            }
+        }
+    }
+
+    void OutputVertices(string fileName)
+    {
+        using (StreamWriter writer = new StreamWriter(fileName))
+        {
+            for (int i = 0; i < particles.Count; i++)
+            {
+                writer.WriteLine($"Vertex {i}: {particles[i].pos}");
+            }
+        }
+    }
+
+    void OutputEdges(string fileName)
+    {
+        using (StreamWriter writer = new StreamWriter(fileName))
+        {
+            for (int i = 0; i < connectors.Count; i++)
+            {
+                writer.WriteLine($"Edge {i}: {connectors[i].point0.pos} - {connectors[i].point1.pos}");
+            }
+        }
+    }
+
+    void OutputTriangles(string fileName)
+    {
+        using (StreamWriter writer = new StreamWriter(fileName))
+        {
+            for (int i = 0; i < triangles.Count; i++)
+            {
+                writer.WriteLine($"Triangle {i}: {triangles[i].p0.transform.position}, {triangles[i].p1.transform.position}, {triangles[i].p2.transform.position}");
             }
         }
     }
@@ -310,7 +355,7 @@ public class Verlet3D : MonoBehaviour
         public Vector3 pinnedPos;
         public Vector3 pos;
         public Vector3 oldPos;
-        public float gravity = 0.24f;
+        public float gravity = 0f;
         public float friction = 0.99f;
     }
 }
