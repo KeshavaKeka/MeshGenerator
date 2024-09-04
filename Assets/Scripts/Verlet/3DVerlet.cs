@@ -14,6 +14,7 @@ public class Verlet3D : MonoBehaviour
 
     private GameObject sword;
     public Material nodeMaterial;
+    public Material cutMaterial;
     public Material edgeMaterial;
     public Material triangleMaterial;
 
@@ -187,6 +188,30 @@ public class Verlet3D : MonoBehaviour
         }
     }
 
+    void RemoveConnector(Connector connector, Vector3 closestPoint)
+    {
+        GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            var mat = sphere.GetComponent<Renderer>();
+            mat.material = cutMaterial;
+            sphere.transform.position = closestPoint;
+            sphere.transform.localScale = new Vector3(0.05f, 0.05f, 0.05f);
+
+            Particle point = new Particle
+            {
+                pinnedPos = closestPoint,
+                pos = closestPoint,
+                oldPos = closestPoint,
+                gravity = 0f, // Disable gravity
+                pinned = false // No pinned vertices
+            };
+
+            spheres.Add(sphere);
+            particles.Add(point);
+
+        Destroy(connector.lineRender.gameObject);
+
+    }
+
     bool ContainsConnector(Triangle triangle, Connector connector)
     {
         return (triangle.p0 == connector.p0 && triangle.p1 == connector.p1) ||
@@ -279,7 +304,7 @@ public class Verlet3D : MonoBehaviour
             // Check if the sword is close enough to either end of the connector
             if (distToPoint0 <= cutDistance || distToPoint1 <= cutDistance)
             {
-                RemoveConnector(connectors[i]);
+                RemoveConnector(connectors[i],closestPoint);
                 connectors.RemoveAt(i);
             }
         }
@@ -310,7 +335,7 @@ public class Verlet3D : MonoBehaviour
         public Vector3 pinnedPos;
         public Vector3 pos;
         public Vector3 oldPos;
-        public float gravity = 0.24f;
+        public float gravity = 0.0f;
         public float friction = 0.99f;
     }
 }
