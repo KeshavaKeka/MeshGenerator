@@ -219,8 +219,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc55ad6bb0ed5411e9d685c091a498f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  filePathVertices: Assets/Mesh/cylindervertices.txt
-  filePathTriangles: Assets/Mesh/cylindertriangles.txt
+  filePathVertices: Assets/Mesh/vertices.txt
+  filePathTriangles: Assets/Mesh/triangles.txt
   stick: {fileID: 865132689}
 --- !u!1 &865132689
 GameObject:
@@ -336,7 +336,7 @@ Transform:
   m_GameObject: {fileID: 865132689}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.09, y: 2.57, z: -2.82}
+  m_LocalPosition: {x: -0.05, y: 1.52, z: -0.68}
   m_LocalScale: {x: 0.01, y: 0.3, z: 0.01}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -573,8 +573,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1191260505}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 3, z: -1}
+  m_LocalRotation: {x: 0.33363333, y: 0.6190922, z: -0.6311021, w: 0.32729778}
+  m_LocalPosition: {x: -0.03004182, y: 3.1872704, z: -0.15931596}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -592,7 +592,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_RenderShadows: 1
+  m_RenderShadows: 0
   m_RequiresDepthTextureOption: 2
   m_RequiresOpaqueTextureOption: 2
   m_CameraType: 0
