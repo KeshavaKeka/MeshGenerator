@@ -11,16 +11,18 @@ public class Verlet3D : MonoBehaviour
     public float lineThickness = 0.001f;
     public GameObject swordPrefab; // Assign this in the Unity Inspector
     public Transform swordSpawnPoint;
+    public float offset = 1f;
 
-    private GameObject sword;
     public Material nodeMaterial;
     public Material edgeMaterial;
     public Material triangleMaterial;
+    private GameObject sword;
 
     private List<GameObject> spheres;
     private List<Particle> particles;
     private List<Connector> connectors;
     private List<Triangle> triangles;
+    
 
     void Start()
     {
@@ -56,6 +58,12 @@ public class Verlet3D : MonoBehaviour
                 {
                     CreateConnector(sphere, spheres[(y - 1) * (columns + 1) + x], point, particles[(y - 1) * (columns + 1) + x]);
                 }
+
+                // // DO NOT UNCOMMENT - CREATES DIAGONAL CONNECTOR WITH SAME LENGHT AS SIDE - NOT HANDLED AS OF NOW 💀💀💀
+                // if (x != 0 && y != 0)
+                // {
+                //     CreateConnector(sphere, spheres[(y - 1) * (columns + 1) + x - 1], point, particles[(y - 1) * (columns + 1) + x - ]);
+                // }
 
                 if (x != 0 && y != 0)
                 {
@@ -264,26 +272,82 @@ public class Verlet3D : MonoBehaviour
         }
     }
 
-    void CheckSwordCollision()
+    // void CheckSwordCollision()
+    // {
+    //     // Get the sword's position and rotation
+    //     Vector3 swordTip = sword.transform.position + sword.transform.forward * (sword.transform.localScale.z / 2);
+    //     Vector3 swordBase = sword.transform.position - sword.transform.forward * (sword.transform.localScale.z / 2);
+
+    //     for (int i = connectors.Count - 1; i >= 0; i--)
+    //     {
+    //         Vector3 closestPoint = ClosestPointOnLineSegment(swordBase, swordTip, connectors[i].point0.pos);
+    //         float distToPoint0 = Vector3.Distance(closestPoint, connectors[i].point0.pos);
+    //         float distToPoint1 = Vector3.Distance(closestPoint, connectors[i].point1.pos);
+
+    //         // Check if the sword is close enough to either end of the connector
+    //         if (distToPoint0 <= cutDistance || distToPoint1 <= cutDistance)
+    //         {
+    //             RemoveConnector(connectors[i]);
+    //             connectors.RemoveAt(i);
+    //         }
+    //     }
+    // }
+
+void CheckSwordCollision()
+{
+    // Get the sword's position and rotation
+    Vector3 swordTip = sword.transform.position + sword.transform.forward * (sword.transform.localScale.z / 2);
+    Vector3 swordBase = sword.transform.position - sword.transform.forward * (sword.transform.localScale.z / 2);
+
+    for (int i = connectors.Count - 1; i >= 0; i--)
     {
-        // Get the sword's position and rotation
-        Vector3 swordTip = sword.transform.position + sword.transform.forward * (sword.transform.localScale.z / 2);
-        Vector3 swordBase = sword.transform.position - sword.transform.forward * (sword.transform.localScale.z / 2);
+        Vector3 closestPoint = ClosestPointOnLineSegment(swordBase, swordTip, connectors[i].point0.pos);
+        float distToPoint0 = Vector3.Distance(closestPoint, connectors[i].point0.pos);
+        float distToPoint1 = Vector3.Distance(closestPoint, connectors[i].point1.pos);
 
-        for (int i = connectors.Count - 1; i >= 0; i--)
+        // Check if the sword is close enough to either end of the connector
+        if (distToPoint0 <= cutDistance || distToPoint1 <= cutDistance)
         {
-            Vector3 closestPoint = ClosestPointOnLineSegment(swordBase, swordTip, connectors[i].point0.pos);
-            float distToPoint0 = Vector3.Distance(closestPoint, connectors[i].point0.pos);
-            float distToPoint1 = Vector3.Distance(closestPoint, connectors[i].point1.pos);
+            Vector3 midpoint = (connectors[i].point0.pos + connectors[i].point1.pos) / 2;
+            Debug.Log("Connector removed: " + connectors[i].point0.pos + " - " + connectors[i].point1.pos + ". Midpoint: " + midpoint);
 
-            // Check if the sword is close enough to either end of the connector
-            if (distToPoint0 <= cutDistance || distToPoint1 <= cutDistance)
-            {
-                RemoveConnector(connectors[i]);
-                connectors.RemoveAt(i);
-            }
+            Vector3 dir1 = (connectors[i].point0.pos - midpoint).normalized;
+            Vector3 dir2 = (connectors[i].point1.pos - midpoint).normalized;
+
+            GameObject node1 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            node1.transform.position = midpoint + dir1 * offset;
+            node1.transform.localScale = nodeSize;
+            node1.GetComponent<Renderer>().material = nodeMaterial;
+
+            GameObject node2 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            node2.transform.position = midpoint + dir2 * offset;
+            node2.transform.localScale = nodeSize;
+            node2.GetComponent<Renderer>().material = nodeMaterial;
+
+            Particle point1 = new Particle();
+            point1.pos = node1.transform.position;
+            point1.oldPos = node1.transform.position;
+            point1.pinnedPos = node1.transform.position;
+
+            Particle point2 = new Particle();
+            point2.pos = node2.transform.position;
+            point2.oldPos = node2.transform.position;
+            point2.pinnedPos = node2.transform.position;
+
+            // CreateConnector(connectors[i].p0, node1, connectors[i].point0, point1);
+            // CreateConnector(connectors[i].p1, node2, connectors[i].point1, point2);
+
+            spheres.Add(node1);
+            spheres.Add(node2);
+            particles.Add(point1);
+            particles.Add(point2);
+
+            RemoveConnector(connectors[i]);
+            connectors.RemoveAt(i);
         }
     }
+}
+
 
     public class Connector
     {
@@ -310,7 +374,9 @@ public class Verlet3D : MonoBehaviour
         public Vector3 pinnedPos;
         public Vector3 pos;
         public Vector3 oldPos;
-        public float gravity = 0.24f;
+        // public float gravity = 0.24f;
+        public float gravity = 0f;
+
         public float friction = 0.99f;
     }
 }
