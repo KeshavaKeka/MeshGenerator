@@ -22,6 +22,18 @@ public class Cut : MonoBehaviour
     int currentTriangleID = -1;
     float offsetDistance = 0.02f;
 
+    // New variables for point selection
+    public float pointDistance = 1f;
+    public Color highlightColor = Color.red;
+    private GameObject point1Marker, point2Marker;
+
+    private Vector3 selectedPoint1;
+    private Vector3 selectedPoint2;
+    private List<Vector3> cutPath = new List<Vector3>();
+    private float cutThreshold = 0.1f; // Tolerance for cut deviation from the line
+    private bool cutStarted = false;
+    private bool cutCompleted = false;
+    private bool cutMadeBetweenPoints = false;
     void Start()
     {
         mesh = new Mesh();
@@ -36,16 +48,35 @@ public class Cut : MonoBehaviour
             meshCollider.convex = true;
             meshCollider.isTrigger = true;
         }
+
+        // Add point selection after mesh creation
+        SelectConstantPoints();
+        SetAndVisualizePoints();
     }
 
     void Update()
     {
         if (currentPosition != null)
         {
+            // Straight line cut detection
+            if (!cutStarted && IsNearPoint(currentPosition, selectedPoint1))
+            {
+                cutStarted = true;
+                cutPath.Clear();
+                Debug.Log("Cut started near Point 1");
+            }
+
+            if (cutStarted && !cutCompleted)
+            {
+                cutPath.Add(currentPosition);
+                CheckCutProgress();
+            }
+
+            // Existing triangle transition logic
             previousTriangleID = currentTriangleID;
             currentTriangleID = GetTriangleID(currentPosition);
 
-            if (currentTriangleID != 1 && previousTriangleID == -1)
+            if (currentTriangleID != -1 && previousTriangleID == -1)
             {
                 Vector3 transitionPoint = CalculateTransitionPoint(currentPosition, currentTriangleID);
                 entry = transitionPoint;
@@ -69,16 +100,49 @@ public class Cut : MonoBehaviour
                 Debug.LogFormat("Transition from Triangle {0} to Triangle {1} at Position: {2:0.000}",
                     previousTriangleID, currentTriangleID, transitionPoint);
                 exit = transitionPoint;
-                //Debug.LogFormat("Exit lallala: {0:0.000}", exit);
                 exitOnEdge = true;
                 getCut(previousTriangleID, entry, exit, 1);
                 entry = exit;
-                //Debug.Log("Entry: {0:0.000}", entry);
                 entOnEdge = true;
+            }
+
+            // Check for straight line cut completion
+            if (cutStarted && IsNearPoint(currentPosition, selectedPoint2))
+            {
+                cutCompleted = true;
+                Debug.Log("Straight line cut completed between the two points!");
             }
         }
     }
 
+    private bool IsNearPoint(Vector3 position, Vector3 point)
+    {
+        return Vector3.Distance(position, point) < cutThreshold;
+    }
+
+    private void CheckCutProgress()
+    {
+        if (cutPath.Count < 2) return;
+
+        Vector3 cutDirection = (selectedPoint2 - selectedPoint1).normalized;
+        Vector3 lastPoint = cutPath[cutPath.Count - 1];
+
+        // Check if the cut is still following the line
+        if (Vector3.Distance(lastPoint, selectedPoint1 + Vector3.Project(lastPoint - selectedPoint1, cutDirection)) > cutThreshold)
+        {
+            Debug.Log("Cut deviated from the straight line");
+            ResetCut();
+            return;
+        }
+    }
+
+    private void ResetCut()
+    {
+        cutStarted = false;
+        cutCompleted = false;
+        cutPath.Clear();
+        Debug.Log("Cut reset");
+    }
     void CreateShape()
     {
         vertices = new List<Vector3>();
@@ -142,6 +206,12 @@ public class Cut : MonoBehaviour
             // Determine and log the initial triangle ID for the entry point
             previousTriangleID = GetTriangleID(entry);
             currentTriangleID = previousTriangleID;
+        }
+
+        if (cutStarted && !cutCompleted)
+        {
+            Debug.Log("Cutting object exited before completing the cut");
+            ResetCut();
         }
     }
 
@@ -404,6 +474,67 @@ public class Cut : MonoBehaviour
         Debug.Log(dotProduct < 0);
         return dotProduct < 0;
     }
+
+    // New methods for point selection
+
+    void SelectConstantPoints()
+    {
+        bool useHorizontal = Random.value > 0.5f;
+        float linePosition = useHorizontal
+            ? Random.Range(0, height)
+            : Random.Range(-width / 2, width / 2);
+
+        float start, end;
+        if (useHorizontal)
+        {
+            start = -width / 2;
+            end = start + Mathf.Min(pointDistance, width);
+            selectedPoint1 = new Vector3(start, linePosition, 0);
+            selectedPoint2 = new Vector3(end, linePosition, 0);
+        }
+        else
+        {
+            start = 0;
+            end = Mathf.Min(pointDistance, height);
+            selectedPoint1 = new Vector3(linePosition, start, 0);
+            selectedPoint2 = new Vector3(linePosition, end, 0);
+        }
+
+        Debug.Log($"Selected Point 1: {selectedPoint1}, Point 2: {selectedPoint2}, Distance: {Vector3.Distance(selectedPoint1, selectedPoint2)}");
+    }
+
+    void SetAndVisualizePoints()
+    {
+        if (point1Marker != null) Destroy(point1Marker);
+        if (point2Marker != null) Destroy(point2Marker);
+
+        point1Marker = CreateSphereMarker(selectedPoint1, "Point1Marker");
+        point2Marker = CreateSphereMarker(selectedPoint2, "Point2Marker");
+
+        Debug.DrawLine(selectedPoint1, selectedPoint2, Color.green, 100f);
+        Debug.Log($"Visualizing - Point 1: {selectedPoint1}, Point 2: {selectedPoint2}, Distance: {Vector3.Distance(selectedPoint1, selectedPoint2)}");
+    }
+
+    GameObject CreateSphereMarker(Vector3 position, string name)
+    {
+        GameObject marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        marker.name = name;
+        marker.transform.position = position;
+        marker.transform.localScale = Vector3.one * 0.1f; // Keep the larger size
+        marker.transform.SetParent(this.transform);
+
+        // Remove the collider to prevent physical interactions
+        Destroy(marker.GetComponent<Collider>());
+
+        // Make the marker ignore raycasts
+        marker.layer = LayerMask.NameToLayer("Ignore Raycast");
+
+        Renderer renderer = marker.GetComponent<Renderer>();
+        renderer.material = new Material(Shader.Find("Standard"));
+        renderer.material.color = highlightColor;
+
+        return marker;
+    }
     void getCut(int id, Vector3 entry, Vector3 exit, int which)
     {
         if (id >= 0)
@@ -565,5 +696,48 @@ public class Cut : MonoBehaviour
                 }
             }
         }
+
+        if (IsCutBetweenPoints(entry, exit))
+        {
+            cutMadeBetweenPoints = true;
+            Debug.Log("Cut made between the two points!");
+        }
     }
+
+    private bool IsCutBetweenPoints(Vector3 entry, Vector3 exit)
+    {
+        bool intersects = LineSegmentsIntersect(entry, exit, selectedPoint1, selectedPoint2);
+        Debug.Log($"Checking cut between Entry: {entry}, Exit: {exit}");
+        Debug.Log($"Selected Points: Point1: {selectedPoint1}, Point2: {selectedPoint2}");
+        Debug.Log($"Cut intersects points: {intersects}");
+        return intersects;
+    }
+
+    private bool LineSegmentsIntersect(Vector3 p1, Vector3 p2, Vector3 p3, Vector3 p4)
+    {
+        float d = (p2.x - p1.x) * (p4.y - p3.y) - (p2.y - p1.y) * (p4.x - p3.x);
+        if (d == 0) return false;
+
+        float u = ((p3.x - p1.x) * (p4.y - p3.y) - (p3.y - p1.y) * (p4.x - p3.x)) / d;
+        float v = ((p3.x - p1.x) * (p2.y - p1.y) - (p3.y - p1.y) * (p2.x - p1.x)) / d;
+
+        return u >= 0 && u <= 1 && v >= 0 && v <= 1;
+    }
+
+    // Public methods for external access
+    public bool HasStraightLineCutBeenMade()
+    {
+        return cutCompleted;
+    }
+
+    public void ForceCutBetweenPoints()
+    {
+        cutMadeBetweenPoints = true;
+        Debug.Log("Cut forcibly made between points");
+    }
+
+    
+
+    public Vector3 GetSelectedPoint1() => selectedPoint1;
+    public Vector3 GetSelectedPoint2() => selectedPoint2;
 }
