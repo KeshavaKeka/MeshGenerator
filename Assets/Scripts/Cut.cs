@@ -136,7 +136,7 @@ public class Cut : MonoBehaviour
         }
     }
 
-    private void ResetCut()
+    public void ResetCut()
     {
         cutStarted = false;
         cutCompleted = false;
