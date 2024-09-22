@@ -5,6 +5,9 @@ using UnityEngine;
 [RequireComponent(typeof(MeshFilter))]
 public class Cut : MonoBehaviour
 {
+    public delegate void CutCompletedEventHandler();
+    public event CutCompletedEventHandler OnCutCompleted;
+
     public int verticesAlongX = 100;
     public int verticesAlongY = 60;
     public float width = 5.0f;
@@ -107,10 +110,17 @@ public class Cut : MonoBehaviour
             }
 
             // Check for straight line cut completion
+            //if (cutStarted && IsNearPoint(currentPosition, selectedPoint2))
+            //{
+            //    cutCompleted = true;
+            //    Debug.Log("Straight line cut completed between the two points!");
+            //}
+
             if (cutStarted && IsNearPoint(currentPosition, selectedPoint2))
             {
                 cutCompleted = true;
                 Debug.Log("Straight line cut completed between the two points!");
+                OnCutCompleted?.Invoke(); // Trigger the event
             }
         }
     }
@@ -138,10 +148,38 @@ public class Cut : MonoBehaviour
 
     public void ResetCut()
     {
+        Debug.Log("ResetCut method called");
+
         cutStarted = false;
         cutCompleted = false;
+        cutMadeBetweenPoints = false;
         cutPath.Clear();
-        Debug.Log("Cut reset");
+
+        // Reset mesh to original state
+        CreateShape();
+        numVertices = vertices.Count;
+        UpdateMesh();
+
+        // Reset other variables
+        entOnEdge = false;
+        exitOnEdge = false;
+        previousTriangleID = -1;
+        currentTriangleID = -1;
+        currentPosition = Vector3.zero;
+
+        // Reselect points and visualize them
+        SelectConstantPoints();
+        SetAndVisualizePoints();
+
+        // Reset MeshCollider
+        MeshCollider meshCollider = GetComponent<MeshCollider>();
+        if (meshCollider != null)
+        {
+            meshCollider.sharedMesh = null;
+            meshCollider.sharedMesh = mesh;
+        }
+
+        Debug.Log($"Mesh reset. Vertex count: {mesh.vertexCount}, Triangle count: {mesh.triangles.Length / 3}");
     }
     void CreateShape()
     {
@@ -187,11 +225,18 @@ public class Cut : MonoBehaviour
 
     void UpdateMesh()
     {
+        if (mesh == null)
+        {
+            mesh = new Mesh();
+            GetComponent<MeshFilter>().mesh = mesh;
+        }
         mesh.Clear();
-        mesh.vertices = vertices.ToArray();
-        mesh.triangles = triangles.ToArray();
+        mesh.SetVertices(vertices);
+        mesh.SetTriangles(triangles, 0);
         mesh.RecalculateNormals();
     }
+
+
 
     private void OnTriggerEnter(Collider other)
     {
@@ -537,6 +582,18 @@ public class Cut : MonoBehaviour
     }
     void getCut(int id, Vector3 entry, Vector3 exit, int which)
     {
+        if (vertices == null || triangles == null)
+        {
+            Debug.LogError("Vertices or triangles list is null. Ensure mesh is properly initialized.");
+            return;
+        }
+
+        if (id < 0 || id >= triangles.Count / 3)
+        {
+            Debug.LogError($"Invalid triangle ID: {id}");
+            return;
+        }
+
         if (id >= 0)
         {
             Vector3[] triangleVertices = GetTriangleVertices(id);
@@ -736,7 +793,13 @@ public class Cut : MonoBehaviour
         Debug.Log("Cut forcibly made between points");
     }
 
-    
+
+    // Add this method to properly clean up resources
+    private void OnDestroy()
+    {
+        if (point1Marker != null) Destroy(point1Marker);
+        if (point2Marker != null) Destroy(point2Marker);
+    }
 
     public Vector3 GetSelectedPoint1() => selectedPoint1;
     public Vector3 GetSelectedPoint2() => selectedPoint2;
