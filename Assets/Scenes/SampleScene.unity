@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.18116029, g: 0.22258335, b: 0.28318566, a: 1}
+  m_IndirectSpecularColor: {r: 0.18115991, g: 0.22258279, b: 0.28318492, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -544,6 +544,8 @@ MonoBehaviour:
   rewardForMoveTowardsPoint: 0.2
   rewardForSuccessfulCut: 1
   negativeRewardForFailure: -0.5
+  rewardForCorrectOrientation: 0
+  negativeRewardForIncorrectCut: -0.5
   moveSpeed: 1
 --- !u!114 &1229784358
 MonoBehaviour:
@@ -570,7 +572,7 @@ MonoBehaviour:
   m_Model: {fileID: 0}
   m_InferenceDevice: 0
   m_BehaviorType: 0
-  m_BehaviorName: My Behavior
+  m_BehaviorName: CuttingAgent3D
   TeamId: 0
   m_UseChildSensors: 1
   m_UseChildActuators: 1
