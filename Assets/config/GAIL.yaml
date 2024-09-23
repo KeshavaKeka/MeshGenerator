@@ -1,5 +1,5 @@
 behaviors:
-  Hummingbird:  # Replace with your agent's name
+  CuttingAgent3D:  # Replace with your agent's name
     trainer_type: ppo  # Can also use sac or other RL algorithms if needed
     hyperparameters:
       batch_size: 128
@@ -27,7 +27,7 @@ behaviors:
         learning_rate: 0.0003
         use_actions: false
         use_vail: false
-        demo_path: "D:\\RLHummingbirds\\HummingbirdRL\\Assets\\Demonstrations"  # Update this path as needed
+        demo_path: "D:\\Mesh_Cutting\\MeshGenerator\\Assets\\Demonstrations"  # Update this path as needed
     keep_checkpoints: 5
     max_steps: 500000
     time_horizon: 64

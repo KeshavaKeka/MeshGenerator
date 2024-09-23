@@ -18,6 +18,8 @@ public class CuttingAgent3D : Agent
     public float rewardForMoveTowardsPoint = 0.2f;
     public float rewardForSuccessfulCut = 1.0f;
     public float negativeRewardForFailure = -0.5f;
+    public float rewardForCorrectOrientation = 0f;
+    public float negativeRewardForIncorrectCut = -0.5f; // New negative reward
 
     [Header("Movement")]
     public float moveSpeed = 1f;
@@ -67,8 +69,13 @@ public class CuttingAgent3D : Agent
         sensor.AddObservation(cutScript.GetSelectedPoint1());
         sensor.AddObservation(cutScript.GetSelectedPoint2());
 
-        sensor.AddObservation(cuttingTool.position - cutScript.GetSelectedPoint1());
-        sensor.AddObservation(cuttingTool.position - cutScript.GetSelectedPoint2());
+        Vector3 toPoint1 = (cutScript.GetSelectedPoint1() - cuttingTool.position).normalized;
+        Vector3 toPoint2 = (cutScript.GetSelectedPoint2() - cuttingTool.position).normalized;
+        sensor.AddObservation(toPoint1);
+        sensor.AddObservation(toPoint2);
+
+        Vector3 cutDirection = (cutScript.GetSelectedPoint2() - cutScript.GetSelectedPoint1()).normalized;
+        sensor.AddObservation(Vector3.Dot(cuttingTool.forward, cutDirection));
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -81,18 +88,29 @@ public class CuttingAgent3D : Agent
             float moveX = actions.ContinuousActions[0];
             float moveY = actions.ContinuousActions[1];
             float moveZ = actions.ContinuousActions[2];
-            Vector3 movement = new Vector3(moveX, moveY, moveZ) * moveSpeed * Time.deltaTime;
+            Vector3 movement = new Vector3(moveX, moveY, moveZ) * moveSpeed * Time.fixedDeltaTime;
 
             cuttingTool.Translate(movement, Space.World);
 
             Vector3 point1 = cutScript.GetSelectedPoint1();
             Vector3 point2 = cutScript.GetSelectedPoint2();
 
-            if (Vector3.Distance(cuttingTool.position, point1) < 0.5f || Vector3.Distance(cuttingTool.position, point2) < 0.5f)
+            float distanceToLine = PointLineDistance(cuttingTool.position, point1, point2);
+            if (distanceToLine < 0.5f)
             {
-                AddReward(rewardForMoveTowardsPoint);
-                Debug.Log($"Reward added for moving towards point: {rewardForMoveTowardsPoint}");
+                AddReward(rewardForMoveTowardsPoint * Time.fixedDeltaTime);
+                Debug.Log($"Reward added for moving towards line: {rewardForMoveTowardsPoint * Time.fixedDeltaTime}");
             }
+
+            Vector3 cutDirection = (point2 - point1).normalized;
+            float alignment = Vector3.Dot(cuttingTool.forward, cutDirection);
+            if (alignment > 0.9f)
+            {
+                AddReward(rewardForCorrectOrientation * Time.fixedDeltaTime);
+                Debug.Log($"Reward added for correct orientation: {rewardForCorrectOrientation * Time.fixedDeltaTime}");
+            }
+
+            AddReward(-0.001f * Time.fixedDeltaTime);
         }
         else
         {
@@ -107,13 +125,30 @@ public class CuttingAgent3D : Agent
         }
     }
 
+    private float PointLineDistance(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
+    {
+        return Vector3.Cross(lineEnd - lineStart, point - lineStart).magnitude / (lineEnd - lineStart).magnitude;
+    }
+
     private void OnCutCompleted()
     {
         Debug.Log($"Cut Completed - Step: {stepCount}, Time: {Time.time}");
         if (CanEndEpisode())
         {
-            Debug.Log("Ending Episode due to cut completion");
-            AddReward(rewardForSuccessfulCut);
+            Vector3 point1 = cutScript.GetSelectedPoint1();
+            Vector3 point2 = cutScript.GetSelectedPoint2();
+            float distanceToLine = PointLineDistance(cuttingTool.position, point1, point2);
+
+            if (distanceToLine < 0.5f)
+            {
+                Debug.Log("Ending Episode due to successful cut");
+                AddReward(rewardForSuccessfulCut);
+            }
+            else
+            {
+                Debug.Log("Ending Episode due to incorrect cut");
+                AddReward(negativeRewardForIncorrectCut);
+            }
             EndEpisode();
         }
     }
@@ -129,17 +164,14 @@ public class CuttingAgent3D : Agent
     {
         var continuousActions = actionsOut.ContinuousActions;
 
-        // Forward/Backward movement (Z-axis)
         float moveZ = 0f;
         if (Input.GetKey(KeyCode.W)) moveZ += 1f;
         if (Input.GetKey(KeyCode.S)) moveZ -= 1f;
 
-        // Left/Right movement (X-axis)
         float moveX = 0f;
         if (Input.GetKey(KeyCode.D)) moveX += 1f;
         if (Input.GetKey(KeyCode.A)) moveX -= 1f;
 
-        // Up/Down movement (Y-axis)
         float moveY = 0f;
         if (Input.GetKey(KeyCode.Q)) moveY += 1f;
         if (Input.GetKey(KeyCode.E)) moveY -= 1f;

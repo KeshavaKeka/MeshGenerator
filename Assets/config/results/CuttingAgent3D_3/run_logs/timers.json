@@ -1,0 +1,47 @@
+{
+    "name": "root",
+    "metadata": {
+        "timer_format_version": "0.1.0",
+        "start_time_seconds": "1727029890",
+        "python_version": "3.9.19 (main, May  6 2024, 20:12:36) [MSC v.1916 64 bit (AMD64)]",
+        "command_line_arguments": "D:\\anaconda\\envs\\hummingbird\\Scripts\\mlagents-learn GAIL.yaml --run-id=CuttingAgent3D_3",
+        "mlagents_version": "0.30.0",
+        "mlagents_envs_version": "0.30.0",
+        "communication_protocol_version": "1.5.0",
+        "pytorch_version": "1.11.0+cpu",
+        "numpy_version": "1.21.2",
+        "end_time_seconds": "1727029918"
+    },
+    "total": 28.2402282,
+    "count": 1,
+    "self": 0.012241600000002961,
+    "children": {
+        "run_training.setup": {
+            "total": 0.10803610000000008,
+            "count": 1,
+            "self": 0.10803610000000008
+        },
+        "TrainerController.start_learning": {
+            "total": 28.119950499999998,
+            "count": 1,
+            "self": 0.00040429999999958,
+            "children": {
+                "TrainerController._reset_env": {
+                    "total": 28.1195318,
+                    "count": 1,
+                    "self": 28.1195318
+                },
+                "trainer_threads": {
+                    "total": 1.2999999974283583e-06,
+                    "count": 1,
+                    "self": 1.2999999974283583e-06
+                },
+                "TrainerController._save_models": {
+                    "total": 1.3100000000321188e-05,
+                    "count": 1,
+                    "self": 1.3100000000321188e-05
+                }
+            }
+        }
+    }
+}
