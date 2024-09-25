@@ -541,11 +541,11 @@ MonoBehaviour:
   cutScript: {fileID: 1924496054}
   isTraining: 1
   maxStep: 3000
-  rewardForMoveTowardsPoint: 0.2
-  rewardForSuccessfulCut: 1
-  negativeRewardForFailure: -0.5
-  rewardForCorrectOrientation: 0
-  negativeRewardForIncorrectCut: -0.5
+  rewardForMoveTowardsPoint: 1
+  rewardForSuccessfulCut: 5
+  negativeRewardForFailure: -0.2
+  negativeRewardForIncorrectCut: -0.3
+  maxDistanceForNegativeReward: 1
   moveSpeed: 1
 --- !u!114 &1229784358
 MonoBehaviour:

@@ -17,8 +17,8 @@ public class CuttingAgent3D : Agent
     [Header("Rewards")]
     public float rewardForMoveTowardsPoint = 0.2f;
     public float rewardForSuccessfulCut = 1.0f;
-    public float negativeRewardForFailure = -0.5f;
-    public float negativeRewardForIncorrectCut = -0.5f;
+    public float negativeRewardForFailure = -0.2f;
+    public float negativeRewardForIncorrectCut = -0.3f;
     public float maxDistanceForNegativeReward = 1.0f; // Maximum distance for scaling negative reward
 
     [Header("Movement")]
