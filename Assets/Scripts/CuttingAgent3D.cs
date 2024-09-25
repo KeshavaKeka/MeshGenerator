@@ -18,8 +18,8 @@ public class CuttingAgent3D : Agent
     public float rewardForMoveTowardsPoint = 0.2f;
     public float rewardForSuccessfulCut = 1.0f;
     public float negativeRewardForFailure = -0.5f;
-    public float rewardForCorrectOrientation = 0f;
-    public float negativeRewardForIncorrectCut = -0.5f; // New negative reward
+    public float negativeRewardForIncorrectCut = -0.5f;
+    public float maxDistanceForNegativeReward = 1.0f; // Maximum distance for scaling negative reward
 
     [Header("Movement")]
     public float moveSpeed = 1f;
@@ -102,14 +102,6 @@ public class CuttingAgent3D : Agent
                 Debug.Log($"Reward added for moving towards line: {rewardForMoveTowardsPoint * Time.fixedDeltaTime}");
             }
 
-            Vector3 cutDirection = (point2 - point1).normalized;
-            float alignment = Vector3.Dot(cuttingTool.forward, cutDirection);
-            if (alignment > 0.9f)
-            {
-                AddReward(rewardForCorrectOrientation * Time.fixedDeltaTime);
-                Debug.Log($"Reward added for correct orientation: {rewardForCorrectOrientation * Time.fixedDeltaTime}");
-            }
-
             AddReward(-0.001f * Time.fixedDeltaTime);
         }
         else
@@ -146,8 +138,10 @@ public class CuttingAgent3D : Agent
             }
             else
             {
-                Debug.Log("Ending Episode due to incorrect cut");
-                AddReward(negativeRewardForIncorrectCut);
+                float normalizedDistance = Mathf.Clamp01(distanceToLine / maxDistanceForNegativeReward);
+                float scaledNegativeReward = negativeRewardForIncorrectCut * normalizedDistance;
+                Debug.Log($"Ending Episode due to incorrect cut. Distance: {distanceToLine}, Negative Reward: {scaledNegativeReward}");
+                AddReward(scaledNegativeReward);
             }
             EndEpisode();
         }
