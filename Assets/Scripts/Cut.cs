@@ -20,7 +20,7 @@ public class Cut : MonoBehaviour
     bool exitOnEdge = false;
     Vector3 entry;
     Vector3 exit;
-    Vector3 currentPosition;
+    public Vector3 currentPosition; // Changed to public
     int previousTriangleID = -1;
     int currentTriangleID = -1;
     float offsetDistance = 0.02f;
@@ -34,9 +34,12 @@ public class Cut : MonoBehaviour
     private Vector3 selectedPoint2;
     private List<Vector3> cutPath = new List<Vector3>();
     private float cutThreshold = 0.1f; // Tolerance for cut deviation from the line
+    public float cutProgressThreshold = 0.95f; // Progress threshold to consider a cut complete
+
     private bool cutStarted = false;
     private bool cutCompleted = false;
     private bool cutMadeBetweenPoints = false;
+    private float currentCutProgress = 0f;
     void Start()
     {
         mesh = new Mesh();
@@ -61,6 +64,8 @@ public class Cut : MonoBehaviour
     {
         if (currentPosition != null)
         {
+            UpdateCutProgress();
+            CheckCutCompletion();
             // Straight line cut detection
             if (!cutStarted && IsNearPoint(currentPosition, selectedPoint1))
             {
@@ -124,6 +129,88 @@ public class Cut : MonoBehaviour
             }
         }
     }
+    
+
+    private void UpdateCutProgress()
+    {
+        if (!cutStarted && IsNearPoint(currentPosition, selectedPoint1))
+        {
+            cutStarted = true;
+            cutPath.Clear();
+            Debug.Log("Cut started near Point 1");
+        }
+
+        if (cutStarted && !cutCompleted)
+        {
+            cutPath.Add(currentPosition);
+            currentCutProgress = CalculateCutProgress();
+            Debug.Log($"Current cut progress: {currentCutProgress}");
+        }
+    }
+
+    private float CalculateCutProgress()
+    {
+        Vector3 cutDirection = (selectedPoint2 - selectedPoint1).normalized;
+        Vector3 currentCutVector = currentPosition - selectedPoint1;
+        float projectionLength = Vector3.Dot(currentCutVector, cutDirection);
+        return Mathf.Clamp01(projectionLength / Vector3.Distance(selectedPoint1, selectedPoint2));
+    }
+
+    private void CheckCutCompletion()
+    {
+        if (cutStarted && !cutCompleted)
+        {
+            if (currentCutProgress >= cutProgressThreshold || IsNearPoint(currentPosition, selectedPoint2))
+            {
+                CompleteCut();
+            }
+            else if (!IsValidCutPath())
+            {
+                ResetCut();
+                Debug.Log("Cut deviated too much from the intended path. Resetting.");
+            }
+        }
+    }
+
+    private bool IsValidCutPath()
+    {
+        Vector3 cutDirection = (selectedPoint2 - selectedPoint1).normalized;
+        foreach (Vector3 point in cutPath)
+        {
+            Vector3 pointVector = point - selectedPoint1;
+            Vector3 projection = Vector3.Project(pointVector, cutDirection);
+            float deviation = Vector3.Distance(pointVector, projection);
+            if (deviation > cutThreshold)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void CompleteCut()
+    {
+        cutCompleted = true;
+        Debug.Log("Cut completed successfully!");
+        OnCutCompleted?.Invoke();
+    }
+
+    // ... existing methods ...
+
+    public float GetCutProgress()
+    {
+        return currentCutProgress;
+    }
+
+    public bool IsCutStarted()
+    {
+        return cutStarted;
+    }
+
+    public bool IsCutCompleted()
+    {
+        return cutCompleted;
+    }
 
     private bool IsNearPoint(Vector3 position, Vector3 point)
     {
@@ -152,8 +239,8 @@ public class Cut : MonoBehaviour
 
         cutStarted = false;
         cutCompleted = false;
-        cutMadeBetweenPoints = false;
         cutPath.Clear();
+        currentCutProgress = 0f;
 
         // Reset mesh to original state
         CreateShape();
@@ -287,12 +374,11 @@ public class Cut : MonoBehaviour
             entOnEdge = false;
         }
     }
-
     Vector3[] GetTriangleVertices(int triangleID)
     {
         if (triangleID < 0 || triangleID >= triangles.Count / 3)
         {
-            Debug.LogError("Invalid triangle ID");
+            Debug.LogError($"Invalid triangle ID: {triangleID}");
             return null;
         }
 

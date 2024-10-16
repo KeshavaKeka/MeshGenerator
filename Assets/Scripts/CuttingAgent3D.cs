@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using Unity.MLAgents;
 using Unity.MLAgents.Actuators;
@@ -23,6 +24,9 @@ public class CuttingAgent3D : Agent
 
     [Header("Movement")]
     public float moveSpeed = 1f;
+
+    [Header("Observation Settings")]
+    public float maxObservationDistance = 10f;
 
     private float episodeStartTime;
     private const float MIN_EPISODE_DURATION = 5f;
@@ -64,18 +68,37 @@ public class CuttingAgent3D : Agent
     {
         Debug.Log($"Collecting Observations - Step: {stepCount}, Time: {Time.time}");
 
-        sensor.AddObservation(cuttingTool.position);
-        sensor.AddObservation(cuttingTool.rotation);
-        sensor.AddObservation(cutScript.GetSelectedPoint1());
-        sensor.AddObservation(cutScript.GetSelectedPoint2());
+        // Normalize positions relative to the cutting tool
+        Vector3 normalizedToolPosition = Vector3.zero;
+        Vector3 normalizedPoint1 = (cutScript.GetSelectedPoint1() - cuttingTool.position) / maxObservationDistance;
+        Vector3 normalizedPoint2 = (cutScript.GetSelectedPoint2() - cuttingTool.position) / maxObservationDistance;
 
-        Vector3 toPoint1 = (cutScript.GetSelectedPoint1() - cuttingTool.position).normalized;
-        Vector3 toPoint2 = (cutScript.GetSelectedPoint2() - cuttingTool.position).normalized;
+        sensor.AddObservation(normalizedToolPosition);
+        sensor.AddObservation(cuttingTool.rotation);
+        sensor.AddObservation(normalizedPoint1);
+        sensor.AddObservation(normalizedPoint2);
+
+        Vector3 toPoint1 = normalizedPoint1.normalized;
+        Vector3 toPoint2 = normalizedPoint2.normalized;
         sensor.AddObservation(toPoint1);
         sensor.AddObservation(toPoint2);
 
         Vector3 cutDirection = (cutScript.GetSelectedPoint2() - cutScript.GetSelectedPoint1()).normalized;
         sensor.AddObservation(Vector3.Dot(cuttingTool.forward, cutDirection));
+
+        // Add distance to closest point
+        float distanceToClosestPoint = Mathf.Min(normalizedPoint1.magnitude, normalizedPoint2.magnitude);
+        sensor.AddObservation(distanceToClosestPoint);
+
+        // Add progress along cut line
+        Vector3 cutLine = cutScript.GetSelectedPoint2() - cutScript.GetSelectedPoint1();
+        float progress = Vector3.Dot(cuttingTool.position - cutScript.GetSelectedPoint1(), cutLine.normalized) / cutLine.magnitude;
+        sensor.AddObservation(Mathf.Clamp01(progress));
+
+        // Add cut progress
+        sensor.AddObservation(cutScript.GetCutProgress());
+        sensor.AddObservation(cutScript.IsCutStarted() ? 1f : 0f);
+        sensor.AddObservation(cutScript.IsCutCompleted() ? 1f : 0f);
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -95,14 +118,23 @@ public class CuttingAgent3D : Agent
             Vector3 point1 = cutScript.GetSelectedPoint1();
             Vector3 point2 = cutScript.GetSelectedPoint2();
 
+            // Add more granular rewards
             float distanceToLine = PointLineDistance(cuttingTool.position, point1, point2);
-            if (distanceToLine < 0.5f)
-            {
-                AddReward(rewardForMoveTowardsPoint * Time.fixedDeltaTime);
-                Debug.Log($"Reward added for moving towards line: {rewardForMoveTowardsPoint * Time.fixedDeltaTime}");
-            }
+            float normalizedDistance = Mathf.Clamp01(distanceToLine / maxObservationDistance);
+            float proximityReward = (1 - normalizedDistance) * rewardForMoveTowardsPoint * Time.fixedDeltaTime;
+            AddReward(proximityReward);
 
-            AddReward(-0.001f * Time.fixedDeltaTime);
+            // Reward for aligning with cut direction
+            Vector3 cutDirection = (point2 - point1).normalized;
+            float alignment = Vector3.Dot(cuttingTool.forward, cutDirection);
+            float alignmentReward = alignment * 0.1f * Time.fixedDeltaTime;
+            AddReward(alignmentReward);
+
+            // Reward for cut progress
+            float cutProgressReward = cutScript.GetCutProgress() * 0.1f;
+            AddReward(cutProgressReward);
+
+            Debug.Log($"Proximity Reward: {proximityReward}, Alignment Reward: {alignmentReward}, Cut Progress Reward: {cutProgressReward}");
         }
         else
         {
