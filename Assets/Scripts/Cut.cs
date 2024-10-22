@@ -383,6 +383,12 @@ public class Cut : MonoBehaviour
         }
 
         int index = triangleID * 3;
+        if (index + 2 >= triangles.Count || index + 2 >= vertices.Count)
+        {
+            Debug.LogError($"Triangle index out of range for ID: {triangleID}");
+            return null;
+        }
+
         Vector3 v0 = vertices[triangles[index]];
         Vector3 v1 = vertices[triangles[index + 1]];
         Vector3 v2 = vertices[triangles[index + 2]];
@@ -671,6 +677,11 @@ public class Cut : MonoBehaviour
         if (vertices == null || triangles == null)
         {
             Debug.LogError("Vertices or triangles list is null. Ensure mesh is properly initialized.");
+            return;
+        }
+        if (triangles == null)
+        {
+            Debug.LogError("Triangles list is null. Ensure mesh is properly initialized.");
             return;
         }
 
