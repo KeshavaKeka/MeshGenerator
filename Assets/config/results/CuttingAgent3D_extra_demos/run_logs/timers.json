@@ -1,0 +1,94 @@
+{
+    "name": "root",
+    "metadata": {
+        "timer_format_version": "0.1.0",
+        "start_time_seconds": "1727288539",
+        "python_version": "3.9.19 (main, May  6 2024, 20:12:36) [MSC v.1916 64 bit (AMD64)]",
+        "command_line_arguments": "D:\\anaconda\\envs\\hummingbird\\Scripts\\mlagents-learn GAIL.yaml --run-id=CuttingAgent3D_extra_demos",
+        "mlagents_version": "0.30.0",
+        "mlagents_envs_version": "0.30.0",
+        "communication_protocol_version": "1.5.0",
+        "pytorch_version": "1.11.0+cpu",
+        "numpy_version": "1.21.2",
+        "end_time_seconds": "1727288568"
+    },
+    "total": 28.596554599999997,
+    "count": 1,
+    "self": 0.00977619999999746,
+    "children": {
+        "run_training.setup": {
+            "total": 0.10436289999999993,
+            "count": 1,
+            "self": 0.10436289999999993
+        },
+        "TrainerController.start_learning": {
+            "total": 28.4824155,
+            "count": 1,
+            "self": 0.2971130999999936,
+            "children": {
+                "TrainerController._reset_env": {
+                    "total": 28.181558300000003,
+                    "count": 1,
+                    "self": 7.0129212000000045,
+                    "children": {
+                        "demo_to_buffer": {
+                            "total": 21.168637099999998,
+                            "count": 1,
+                            "self": 3.879999999867323e-05,
+                            "children": {
+                                "load_demonstration": {
+                                    "total": 0.8499214999999989,
+                                    "count": 1,
+                                    "self": 0.8388124999999977,
+                                    "children": {
+                                        "read_file": {
+                                            "total": 0.011109000000001146,
+                                            "count": 36,
+                                            "self": 0.011109000000001146
+                                        }
+                                    }
+                                },
+                                "make_demo_buffer": {
+                                    "total": 20.3186768,
+                                    "count": 1,
+                                    "self": 4.329368499999694,
+                                    "children": {
+                                        "steps_from_proto": {
+                                            "total": 15.989308300000305,
+                                            "count": 250357,
+                                            "self": 9.915348300000888,
+                                            "children": {
+                                                "_process_rank_one_or_two_observation": {
+                                                    "total": 6.073959999999417,
+                                                    "count": 500714,
+                                                    "self": 6.073959999999417
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "trainer_threads": {
+                    "total": 8.999999998593466e-07,
+                    "count": 1,
+                    "self": 8.999999998593466e-07
+                },
+                "TrainerController._save_models": {
+                    "total": 0.003743200000002389,
+                    "count": 1,
+                    "self": 0.0002514999999974066,
+                    "children": {
+                        "RLTrainer._checkpoint": {
+                            "total": 0.0034917000000049825,
+                            "count": 1,
+                            "self": 0.0034917000000049825
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
