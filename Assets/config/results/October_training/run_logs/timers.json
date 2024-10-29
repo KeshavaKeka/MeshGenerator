@@ -1,0 +1,47 @@
+{
+    "name": "root",
+    "metadata": {
+        "timer_format_version": "0.1.0",
+        "start_time_seconds": "1730188564",
+        "python_version": "3.9.19 (main, May  6 2024, 20:12:36) [MSC v.1916 64 bit (AMD64)]",
+        "command_line_arguments": "D:\\anaconda\\envs\\hummingbird\\Scripts\\mlagents-learn ./GAIL.yaml --run-id=October_training",
+        "mlagents_version": "0.30.0",
+        "mlagents_envs_version": "0.30.0",
+        "communication_protocol_version": "1.5.0",
+        "pytorch_version": "1.11.0+cpu",
+        "numpy_version": "1.21.2",
+        "end_time_seconds": "1730188594"
+    },
+    "total": 29.970487400000003,
+    "count": 1,
+    "self": 0.03257180000000304,
+    "children": {
+        "run_training.setup": {
+            "total": 0.25283829999999985,
+            "count": 1,
+            "self": 0.25283829999999985
+        },
+        "TrainerController.start_learning": {
+            "total": 29.6850773,
+            "count": 1,
+            "self": 0.00045100000000175555,
+            "children": {
+                "TrainerController._reset_env": {
+                    "total": 29.6846079,
+                    "count": 1,
+                    "self": 29.6846079
+                },
+                "trainer_threads": {
+                    "total": 1.4999999997655777e-06,
+                    "count": 1,
+                    "self": 1.4999999997655777e-06
+                },
+                "TrainerController._save_models": {
+                    "total": 1.689999999854308e-05,
+                    "count": 1,
+                    "self": 1.689999999854308e-05
+                }
+            }
+        }
+    }
+}

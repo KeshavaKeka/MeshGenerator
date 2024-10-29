@@ -1,4 +1,4 @@
-using System.Collections;
+ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -101,7 +101,7 @@ public class Cut : MonoBehaviour
 
                 // Log the transition with the adjusted transition point
                 Debug.LogFormat("Transition from Triangle {0} to Triangle {1} at Position: {2:0.000}",
-                    previousTriangleID, currentTriangleID, transitionPoint);
+                previousTriangleID, currentTriangleID, transitionPoint);
                 exit = transitionPoint;
                 exitOnEdge = true;
                 getCut(previousTriangleID, entry, exit, 1);
@@ -112,8 +112,8 @@ public class Cut : MonoBehaviour
             // Check for straight line cut completion
             //if (cutStarted && IsNearPoint(currentPosition, selectedPoint2))
             //{
-            //    cutCompleted = true;
-            //    Debug.Log("Straight line cut completed between the two points!");
+            // cutCompleted = true;
+            // Debug.Log("Straight line cut completed between the two points!");
             //}
 
             if (cutStarted && IsNearPoint(currentPosition, selectedPoint2))
@@ -381,17 +381,17 @@ public class Cut : MonoBehaviour
 
         // Get vertices of the triangle
         Vector3[] triangleVertices = {
-        vertices[triangles[triangleID * 3]],
-        vertices[triangles[triangleID * 3 + 1]],
-        vertices[triangles[triangleID * 3 + 2]]
-        };
+ vertices[triangles[triangleID * 3]],
+ vertices[triangles[triangleID * 3 + 1]],
+ vertices[triangles[triangleID * 3 + 2]]
+ };
 
         // Define edges of the triangle
         Vector3[][] edges = {
-        new Vector3[] { triangleVertices[0], triangleVertices[1] },
-        new Vector3[] { triangleVertices[1], triangleVertices[2] },
-        new Vector3[] { triangleVertices[2], triangleVertices[0] }
-        };
+ new Vector3[] { triangleVertices[0], triangleVertices[1] },
+ new Vector3[] { triangleVertices[1], triangleVertices[2] },
+ new Vector3[] { triangleVertices[2], triangleVertices[0] }
+ };
 
         // Initialize the closest edge and the minimum distance
         Vector3[] closestEdge = null;
@@ -401,7 +401,7 @@ public class Cut : MonoBehaviour
         float DistancePointToSegment(Vector3 p, Vector3 v, Vector3 w)
         {
             // Return minimum distance between point p and line segment vw
-            float l2 = Vector3.SqrMagnitude(w - v); // i.e. |w-v|^2 -  avoid a sqrt
+            float l2 = Vector3.SqrMagnitude(w - v); // i.e. |w-v|^2 - avoid a sqrt
             if (l2 == 0.0) return Vector3.Distance(p, v); // v == w case
                                                           // Consider the line extending the segment, parameterized as v + t (w - v).
                                                           // We find projection of point p onto the line.
@@ -431,16 +431,16 @@ public class Cut : MonoBehaviour
 
         // Get vertices of both triangles
         Vector3[] triangle1Vertices = {
-            vertices[triangles[triangleID1 * 3]],
-            vertices[triangles[triangleID1 * 3 + 1]],
-            vertices[triangles[triangleID1 * 3 + 2]]
-        };
+ vertices[triangles[triangleID1 * 3]],
+ vertices[triangles[triangleID1 * 3 + 1]],
+ vertices[triangles[triangleID1 * 3 + 2]]
+ };
 
         Vector3[] triangle2Vertices = {
-            vertices[triangles[triangleID2 * 3]],
-            vertices[triangles[triangleID2 * 3 + 1]],
-            vertices[triangles[triangleID2 * 3 + 2]]
-        };
+ vertices[triangles[triangleID2 * 3]],
+ vertices[triangles[triangleID2 * 3 + 1]],
+ vertices[triangles[triangleID2 * 3 + 2]]
+ };
 
         // Find the shared edge between the two triangles
         List<Vector3> sharedVertices = new List<Vector3>();
@@ -526,8 +526,8 @@ public class Cut : MonoBehaviour
     {
         bool useHorizontal = Random.value > 0.5f;
         float linePosition = useHorizontal
-            ? Random.Range(0, height)
-            : Random.Range(-width / 2, width / 2);
+        ? Random.Range(0, height)
+        : Random.Range(-width / 2, width / 2);
 
         float start, end;
         if (useHorizontal)
