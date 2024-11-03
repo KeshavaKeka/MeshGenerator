@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.18117175, g: 0.22260483, b: 0.28323865, a: 1}
+  m_IndirectSpecularColor: {r: 0.18116029, g: 0.22258335, b: 0.28318566, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -397,7 +397,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!136 &338545414
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -635,6 +635,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mainColor: {r: 0, g: 0, b: 1, a: 1}
   cutColor: {r: 0, g: 0, b: 0, a: 0}
+  stitchColor: {r: 1, g: 0, b: 0, a: 1}
+  interactableObject: {fileID: 1502719577}
 --- !u!4 &907255000
 Transform:
   m_ObjectHideFlags: 0
@@ -1347,7 +1349,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &2027389015
 BoxCollider:
   m_ObjectHideFlags: 0
