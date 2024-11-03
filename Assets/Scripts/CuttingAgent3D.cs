@@ -39,6 +39,7 @@ public class CuttingAgent3D : Agent
         if (cuttingTool == null || cutScript == null)
         {
             Debug.LogError("Cutting tool or Cut script reference is missing!");
+            return;
         }
 
         initialCuttingToolPosition = cuttingTool.position;
