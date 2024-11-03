@@ -7,6 +7,7 @@ public class Cut : MonoBehaviour
 {
     Mesh mesh;
     List<Vector3> vertices;
+    public List<Vector3> vertices2;
     List<int> triangles;
     int numVertices;
     bool entOnEdge = false;
@@ -111,53 +112,62 @@ public class Cut : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Get the contact point (entry) from the other object
-        Vector3 contactPoint = other.ClosestPointOnBounds(transform.position);
-        //Debug.Log(contactPoint);
-        if (contactPoint != null)
+        if(other.gameObject.name == "sword")
         {
-            entry = new Vector3(other.transform.position.x, 0, other.transform.position.z);
-            entOnEdge = false;
-            //Debug.LogFormat("Entry: {0:0.000}", entry);
+            // Get the contact point (entry) from the other object
+            Vector3 contactPoint = other.ClosestPointOnBounds(transform.position);
+            //Debug.Log(contactPoint);
+            if (contactPoint != null)
+            {
+                entry = new Vector3(other.transform.position.x, 0, other.transform.position.z);
+                entOnEdge = false;
+                //Debug.LogFormat("Entry: {0:0.000}", entry);
 
-            // Determine and log the initial triangle ID for the entry point
-            previousTriangleID = GetTriangleID(entry);
-            currentTriangleID = previousTriangleID;
+                // Determine and log the initial triangle ID for the entry point
+                previousTriangleID = GetTriangleID(entry);
+                currentTriangleID = previousTriangleID;
+            }
         }
     }
 
     private void OnTriggerStay(Collider other)
     {
-        // Continuously update the current position of the contact point
-        Transform contactPoint = other.transform.Find("Contact Point");
-        if (contactPoint != null)
+        if(other.gameObject.name == "sword")
         {
-            currentPosition = new Vector3(contactPoint.position.x, 0, contactPoint.position.z);
+            // Continuously update the current position of the contact point
+            Transform contactPoint = other.transform.Find("Contact Point");
+            if (contactPoint != null)
+            {
+                currentPosition = new Vector3(contactPoint.position.x, 0, contactPoint.position.z);
+            }
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        // Get the contact point (exit) from the other object
-        Transform contactPoint = other.transform.Find("Contact Point");
-        if (contactPoint != null)
+        if(other.gameObject.name == "sword")
         {
-            exit = new Vector3(contactPoint.position.x, 0, contactPoint.position.z);
-            exitOnEdge = false;
-            //Debug.LogFormat("Exit: {0:0.000}", exit);
+            // Get the contact point (exit) from the other object
+            Transform contactPoint = other.transform.Find("Contact Point");
+            if (contactPoint != null)
+            {
+                exit = new Vector3(contactPoint.position.x, 0, contactPoint.position.z);
+                exitOnEdge = false;
+                //Debug.LogFormat("Exit: {0:0.000}", exit);
 
-            // Determine and log the final triangle ID for the exit point
-            int exitTriangleID = GetTriangleID(exit);
-            getCut(exitTriangleID, entry, exit, 0);
-            entry = exit;
-            entOnEdge = false;
+                // Determine and log the final triangle ID for the exit point
+                int exitTriangleID = GetTriangleID(exit);
+                getCut(exitTriangleID, entry, exit, 0);
+                entry = exit;
+                entOnEdge = false;
+            }
         }
     }
     Vector3[] GetTriangleVertices(int triangleID)
     {
         if (triangleID < 0 || triangleID >= triangles.Count / 3)
         {
-            Debug.LogError("Invalid triangle ID");
+            //Debug.LogError("Invalid triangle ID");
             return null;
         }
 
@@ -375,7 +385,7 @@ public class Cut : MonoBehaviour
         }
         else
         {
-            Debug.LogFormat("Point {0:0.000} not on any edge", vertex);
+            //Debug.LogFormat("Point {0:0.000} not on any edge", vertex);
             return null;
         }
     }
@@ -396,12 +406,12 @@ public class Cut : MonoBehaviour
             bool exitCheck = triangleVertices[0] != exit && triangleVertices[1] != exit && triangleVertices[2] != exit;
             if (entryCheck && exitCheck)
             {
-                print("holla");
-                Debug.Log(triangleVertices[0]);
-                Debug.Log(triangleVertices[1]);
-                Debug.Log(triangleVertices[2]);
-                Debug.Log(entry);
-                Debug.Log(exit);
+                //print("holla");
+                //Debug.Log(triangleVertices[0]);
+                //Debug.Log(triangleVertices[1]);
+                //Debug.Log(triangleVertices[2]);
+                //Debug.Log(entry);
+                //Debug.Log(exit);
                 if (entOnEdge == true && exitOnEdge == true)
                 {
                     //Debug.LogFormat("Inside index {0}", id);
@@ -442,6 +452,12 @@ public class Cut : MonoBehaviour
                         vertices.Add(entry2);
                         vertices.Add(exit1);
                         vertices.Add(exit2);
+                        vertices2.Add(entry1);
+                        vertices2.Add(entry2);
+                        vertices2.Add(exit1);
+                        vertices2.Add(exit1);
+                        vertices2.Add(entry2);
+                        vertices2.Add(exit2);
                         if (IsClockwise(triangleVertices[0], entry1, exit1))
                         {
                             triangles[id * 3 + 0] = numVertices;
@@ -484,7 +500,7 @@ public class Cut : MonoBehaviour
                 }
                 else if (entOnEdge == false && exitOnEdge == false)
                 {
-                    Debug.Log("0");
+                    //Debug.Log("0");
                 }
                 else
                 {
@@ -507,6 +523,9 @@ public class Cut : MonoBehaviour
                         vertices.Add(entry);
                         vertices.Add(exit1);
                         vertices.Add(exit2);
+                        vertices2.Add(entry);
+                        vertices2.Add(exit1);
+                        vertices2.Add(exit2);
                         triangles[id * 3 + 0] = numVertices;
                         triangles[id * 3 + 1] = numVertices + 4;
                         triangles[id * 3 + 2] = numVertices + 3;
@@ -540,6 +559,9 @@ public class Cut : MonoBehaviour
                         vertices.Add(entry1);
                         vertices.Add(entry2);
                         vertices.Add(exit);
+                        vertices2.Add(entry1);
+                        vertices2.Add(entry2);
+                        vertices2.Add(exit);
                         triangles[id * 3 + 0] = numVertices + 3;
                         triangles[id * 3 + 1] = numVertices + 5;
                         triangles[id * 3 + 2] = numVertices;
