@@ -101,7 +101,7 @@ public class Cut : MonoBehaviour
             {
                 cutCompleted = true;
                 Debug.Log("Straight line cut completed between the two points!");
-                OnCutCompleted?.Invoke(); // Trigger the event
+                OnCutCompleted?.Invoke(); 
             }
         }
     }
