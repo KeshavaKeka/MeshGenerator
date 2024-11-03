@@ -176,6 +176,7 @@ public class CuttingAgent3D : Agent
             float penalty = negativeRewardForIncorrectCut * normalizedDistance;
             AddReward(penalty);
             Debug.Log($"Inaccurate cut. Distance: {distanceToLine:F2}, Penalty: {penalty:F2}");
+            OnEpisodeBegin();
         }
 
         EndEpisode();
