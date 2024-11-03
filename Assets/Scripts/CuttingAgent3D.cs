@@ -19,7 +19,7 @@ public class CuttingAgent3D : Agent
     public float rewardForSuccessfulCut = 1.0f;
     public float negativeRewardForFailure = -0.2f;
     public float negativeRewardForIncorrectCut = -0.3f;
-    public float maxDistanceForNegativeReward = 1.0f; // Maximum distance for scaling negative reward
+    public float maxDistanceForNegativeReward = 1.0f;
 
     [Header("Movement")]
     public float moveSpeed = 1f;
@@ -30,90 +30,124 @@ public class CuttingAgent3D : Agent
     private int stepCount = 0;
     private Vector3 initialCuttingToolPosition;
     private Quaternion initialCuttingToolRotation;
+    private bool isInitialized = false;
 
     public override void Initialize()
     {
         base.Initialize();
-        Debug.Log("CuttingAgent3D Initialized");
-
-        if (cuttingTool == null || cutScript == null)
+        
+        // Validate required components
+        if (cuttingTool == null)
         {
-            Debug.LogError("Cutting tool or Cut script reference is missing!");
+            Debug.LogError("CuttingAgent3D: Cutting tool reference is missing!");
+            return;
+        }
+        if (cutScript == null) 
+        {
+            Debug.LogError("CuttingAgent3D: Cut script reference is missing!");
             return;
         }
 
+        // Cache initial transform values
         initialCuttingToolPosition = cuttingTool.position;
         initialCuttingToolRotation = cuttingTool.rotation;
 
+        // Set up event listeners
         cutScript.OnCutCompleted += OnCutCompleted;
+        
+        isInitialized = true;
+        Debug.Log("CuttingAgent3D successfully initialized");
     }
 
     public override void OnEpisodeBegin()
     {
+        if (!isInitialized)
+        {
+            Debug.LogError("CuttingAgent3D: Attempting to start episode before initialization!");
+            return;
+        }
+
+        // Reset counters
         stepCount = 0;
         episodeCount++;
         episodeStartTime = Time.time;
-        Debug.Log($"Episode {episodeCount} Begin - Time: {Time.time}");
 
+        // Reset transforms
         cuttingTool.position = initialCuttingToolPosition;
         cuttingTool.rotation = initialCuttingToolRotation;
 
+        // Reset cut state
         cutScript.ResetCut();
+
+        Debug.Log($"Episode {episodeCount} started at time {Time.time}");
     }
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        Debug.Log($"Collecting Observations - Step: {stepCount}, Time: {Time.time}");
+        if (!isInitialized) return;
 
+        // Tool state observations
         sensor.AddObservation(cuttingTool.position);
         sensor.AddObservation(cuttingTool.rotation);
-        sensor.AddObservation(cutScript.GetSelectedPoint1());
-        sensor.AddObservation(cutScript.GetSelectedPoint2());
 
-        Vector3 toPoint1 = (cutScript.GetSelectedPoint1() - cuttingTool.position).normalized;
-        Vector3 toPoint2 = (cutScript.GetSelectedPoint2() - cuttingTool.position).normalized;
+        // Target points
+        Vector3 point1 = cutScript.GetSelectedPoint1();
+        Vector3 point2 = cutScript.GetSelectedPoint2();
+        sensor.AddObservation(point1);
+        sensor.AddObservation(point2);
+
+        // Directional information
+        Vector3 toPoint1 = (point1 - cuttingTool.position).normalized;
+        Vector3 toPoint2 = (point2 - cuttingTool.position).normalized;
         sensor.AddObservation(toPoint1);
         sensor.AddObservation(toPoint2);
 
-        Vector3 cutDirection = (cutScript.GetSelectedPoint2() - cutScript.GetSelectedPoint1()).normalized;
-        sensor.AddObservation(Vector3.Dot(cuttingTool.forward, cutDirection));
+        // Alignment with cut direction
+        Vector3 cutDirection = (point2 - point1).normalized;
+        float alignment = Vector3.Dot(cuttingTool.forward, cutDirection);
+        sensor.AddObservation(alignment);
     }
 
     public override void OnActionReceived(ActionBuffers actions)
     {
+        if (!isInitialized) return;
+
         stepCount++;
-        Debug.Log($"Action Received - Step: {stepCount}, Time: {Time.time}");
 
-        if (actions.ContinuousActions.Length >= 3)
+        if (actions.ContinuousActions.Length < 3)
         {
-            float moveX = actions.ContinuousActions[0];
-            float moveY = actions.ContinuousActions[1];
-            float moveZ = actions.ContinuousActions[2];
-            Vector3 movement = new Vector3(moveX, moveY, moveZ) * moveSpeed * Time.fixedDeltaTime;
-
-            cuttingTool.Translate(movement, Space.World);
-
-            Vector3 point1 = cutScript.GetSelectedPoint1();
-            Vector3 point2 = cutScript.GetSelectedPoint2();
-
-            float distanceToLine = PointLineDistance(cuttingTool.position, point1, point2);
-            if (distanceToLine < 0.5f)
-            {
-                AddReward(rewardForMoveTowardsPoint * Time.fixedDeltaTime);
-                Debug.Log($"Reward added for moving towards line: {rewardForMoveTowardsPoint * Time.fixedDeltaTime}");
-            }
-
-            AddReward(-0.001f * Time.fixedDeltaTime);
-        }
-        else
-        {
-            Debug.LogError($"Not enough continuous actions received. Expected at least 3, but received {actions.ContinuousActions.Length}.");
+            Debug.LogError($"Invalid action space: expected 3 continuous actions, got {actions.ContinuousActions.Length}");
+            return;
         }
 
+        // Process movement
+        Vector3 movement = new Vector3(
+            actions.ContinuousActions[0],
+            actions.ContinuousActions[1],
+            actions.ContinuousActions[2]
+        ) * moveSpeed * Time.fixedDeltaTime;
+
+        cuttingTool.Translate(movement, Space.World);
+
+        // Calculate rewards
+        Vector3 point1 = cutScript.GetSelectedPoint1();
+        Vector3 point2 = cutScript.GetSelectedPoint2();
+        float distanceToLine = PointLineDistance(cuttingTool.position, point1, point2);
+
+        // Reward for staying close to cutting line
+        if (distanceToLine < 0.5f)
+        {
+            float proximityReward = rewardForMoveTowardsPoint * Time.fixedDeltaTime;
+            AddReward(proximityReward);
+        }
+
+        // Small negative reward to encourage efficiency
+        AddReward(-0.001f * Time.fixedDeltaTime);
+
+        // Check for episode timeout
         if (StepCount >= maxStep)
         {
             AddReward(negativeRewardForFailure);
-            Debug.Log($"Episode ended due to max steps reached. Negative reward added: {negativeRewardForFailure}");
             EndEpisode();
         }
     }
@@ -125,68 +159,67 @@ public class CuttingAgent3D : Agent
 
     private void OnCutCompleted()
     {
-        Debug.Log($"Cut Completed - Step: {stepCount}, Time: {Time.time}");
-        if (CanEndEpisode())
-        {
-            Vector3 point1 = cutScript.GetSelectedPoint1();
-            Vector3 point2 = cutScript.GetSelectedPoint2();
-            float distanceToLine = PointLineDistance(cuttingTool.position, point1, point2);
+        if (!isInitialized || !CanEndEpisode()) return;
 
-            if (distanceToLine < 0.5f)
-            {
-                Debug.Log("Ending Episode due to successful cut");
-                AddReward(rewardForSuccessfulCut);
-            }
-            else
-            {
-                float normalizedDistance = Mathf.Clamp01(distanceToLine / maxDistanceForNegativeReward);
-                float scaledNegativeReward = negativeRewardForIncorrectCut * normalizedDistance;
-                Debug.Log($"Ending Episode due to incorrect cut. Distance: {distanceToLine}, Negative Reward: {scaledNegativeReward}");
-                AddReward(scaledNegativeReward);
-            }
-            EndEpisode();
+        Vector3 point1 = cutScript.GetSelectedPoint1();
+        Vector3 point2 = cutScript.GetSelectedPoint2();
+        float distanceToLine = PointLineDistance(cuttingTool.position, point1, point2);
+
+        if (distanceToLine < 0.5f)
+        {
+            AddReward(rewardForSuccessfulCut);
+            Debug.Log($"Successful cut completed! Reward: {rewardForSuccessfulCut}");
         }
+        else
+        {
+            float normalizedDistance = Mathf.Clamp01(distanceToLine / maxDistanceForNegativeReward);
+            float penalty = negativeRewardForIncorrectCut * normalizedDistance;
+            AddReward(penalty);
+            Debug.Log($"Inaccurate cut. Distance: {distanceToLine:F2}, Penalty: {penalty:F2}");
+        }
+
+        EndEpisode();
     }
 
     private bool CanEndEpisode()
     {
-        bool canEnd = Time.time - episodeStartTime >= MIN_EPISODE_DURATION;
-        Debug.Log($"CanEndEpisode called. Result: {canEnd}, Time since start: {Time.time - episodeStartTime}, MIN_DURATION: {MIN_EPISODE_DURATION}");
+        float episodeDuration = Time.time - episodeStartTime;
+        bool canEnd = episodeDuration >= MIN_EPISODE_DURATION;
+        
+        if (!canEnd)
+        {
+            Debug.Log($"Cannot end episode yet. Current duration: {episodeDuration:F2}s");
+        }
+        
         return canEnd;
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
     {
+        if (!isInitialized) return;
+
         var continuousActions = actionsOut.ContinuousActions;
 
-        float moveZ = 0f;
-        if (Input.GetKey(KeyCode.W)) moveZ += 1f;
-        if (Input.GetKey(KeyCode.S)) moveZ -= 1f;
-
-        float moveX = 0f;
-        if (Input.GetKey(KeyCode.D)) moveX += 1f;
-        if (Input.GetKey(KeyCode.A)) moveX -= 1f;
-
-        float moveY = 0f;
-        if (Input.GetKey(KeyCode.Q)) moveY += 1f;
-        if (Input.GetKey(KeyCode.E)) moveY -= 1f;
+        // Process keyboard input for movement
+        float moveX = Input.GetKey(KeyCode.D) ? 1f : Input.GetKey(KeyCode.A) ? -1f : 0f;
+        float moveY = Input.GetKey(KeyCode.Q) ? 1f : Input.GetKey(KeyCode.E) ? -1f : 0f;
+        float moveZ = Input.GetKey(KeyCode.W) ? 1f : Input.GetKey(KeyCode.S) ? -1f : 0f;
 
         continuousActions[0] = moveX;
         continuousActions[1] = moveY;
         continuousActions[2] = moveZ;
 
-        Debug.Log($"Heuristic Input: X: {moveX}, Y: {moveY}, Z: {moveZ}");
-
+        // Manual cut trigger
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            Debug.Log("Manual cut triggered");
             cutScript.ForceCutBetweenPoints();
+            Debug.Log("Manual cut triggered");
         }
     }
 
     private void OnDestroy()
     {
-        if (cutScript != null)
+        if (cutScript != null && isInitialized)
         {
             cutScript.OnCutCompleted -= OnCutCompleted;
         }
