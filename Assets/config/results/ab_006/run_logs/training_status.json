@@ -1,0 +1,29 @@
+{
+    "CuttingAgent3D": {
+        "checkpoints": [
+            {
+                "steps": 0,
+                "file_path": "results\\ab_006\\CuttingAgent3D\\CuttingAgent3D-0.onnx",
+                "reward": null,
+                "creation_time": 1730752276.3443334,
+                "auxillary_file_paths": [
+                    "results\\ab_006\\CuttingAgent3D\\CuttingAgent3D-0.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 0,
+            "file_path": "results\\ab_006\\CuttingAgent3D.onnx",
+            "reward": null,
+            "creation_time": 1730752276.3443334,
+            "auxillary_file_paths": [
+                "results\\ab_006\\CuttingAgent3D\\CuttingAgent3D-0.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "1.1.0",
+        "torch_version": "2.4.0+cpu"
+    }
+}
