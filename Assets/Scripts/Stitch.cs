@@ -4,6 +4,8 @@ using UnityEngine;
 
 public class Stitch : MonoBehaviour
 {
+    private Dictionary<int, Vector3> triangleCenters;
+    public GameObject interactableObject;
     private bool call;
     Mesh mesh;
     public Color cutColor;
@@ -16,6 +18,9 @@ public class Stitch : MonoBehaviour
     List<Color> meshColors = new List<Color>();
     Cut scr;
     Sword sw;
+    private int[] triangles;
+    private Color[] colors;
+    private Vector3[] vertices;
     // Start is called before the first frame update
     void Start()
     {
@@ -49,11 +54,70 @@ public class Stitch : MonoBehaviour
         mesh.triangles = meshTriangles.ToArray();
         mesh.colors = meshColors.ToArray();
 
+        CacheTriangleCenters();
+
         MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
         meshFilter.mesh = mesh;
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
         Material mat = new Material(Shader.Find("Custom/VertexColorTransparentShader"));
         renderer.material = mat;
+
+        MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
+        meshCollider.sharedMesh = mesh;
+        meshCollider.convex = true;
+        meshCollider.isTrigger = true;
+    }
+
+    private void OnTriggerStay(Collider other)
+    {
+        // Check if the colliding object is the interactable object
+        if (other.gameObject == interactableObject)
+        {
+            Vector3 contactPoint = other.ClosestPoint(transform.position);
+            ChangeNearbyTriangleColor(contactPoint, mainColor);
+        }
+    }
+
+    void CacheTriangleCenters()
+    {
+        triangleCenters = new Dictionary<int, Vector3>();
+        triangles = meshTriangles.ToArray();
+        vertices = verts.ToArray();
+        colors = meshColors.ToArray();
+        for (int i = 0; i < triangles.Length; i += 3)
+        {
+            // Calculate the center of each triangle
+            Vector3 center = (vertices[triangles[i]] + vertices[triangles[i + 1]] + vertices[triangles[i + 2]]) / 3;
+            triangleCenters.Add(i, center);
+        }
+    }
+
+    void ChangeNearbyTriangleColor(Vector3 contactPoint, Color newColor)
+    {
+        HashSet<int> updatedTriangles = new HashSet<int>();
+
+        foreach (var entry in triangleCenters)
+        {
+            int triangleIndex = entry.Key;
+            Vector3 triangleCenter = entry.Value;
+
+            // Check if triangle center is within threshold distance from contact point
+            if (Vector3.Distance(triangleCenter, contactPoint) < 0.5f)
+            {
+                // Only update if this triangle hasn't been colored yet
+                if (!updatedTriangles.Contains(triangleIndex))
+                {
+                    colors[triangles[triangleIndex]] = newColor;
+                    colors[triangles[triangleIndex + 1]] = newColor;
+                    colors[triangles[triangleIndex + 2]] = newColor;
+
+                    updatedTriangles.Add(triangleIndex);
+                }
+            }
+        }
+
+        // Apply updated colors to the mesh
+        mesh.colors = colors;
     }
 }
