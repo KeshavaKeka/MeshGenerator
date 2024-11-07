@@ -27,34 +27,12 @@ behaviors:
         learning_rate: 0.0001
         use_actions: false
         use_vail: false
-        demo_path: "C:/Users/anura/OneDrive/Desktop/KAALA VR/MeshGenerator/Assets/Demonstrations"  # Update this path as needed
+        demo_path: "D:\\Mesh_Cutting\\MeshGenerator\\Assets\\NewDemos"  # Update this path as needed
     keep_checkpoints: 5
     max_steps: 500000
     time_horizon: 64
     summary_freq: 10000
-    reward_signals:
-      extrinsic:
-        gamma: 0.99
-        strength: 1.0
-      gail:
-        gamma: 0.99
-        strength: 1.0
-        demo_path: "C:/Users/anura/OneDrive/Desktop/KAALA VR/MeshGenerator/Assets/Demonstrations"
-        use_actions: false
-        use_vail: false
-    max_steps: 500000
-    time_horizon: 64
-    summary_freq: 10000
-    reward_signals:
-      extrinsic:
-        gamma: 0.99
-        strength: 1.0
-      gail:
-        gamma: 0.99
-        strength: 1.0
-        demo_path: "C:/Users/anura/OneDrive/Desktop/KAALA VR/MeshGenerator/Assets/Demonstrations"
-        use_actions: false
-        use_vail: false 
+
 # behaviors:
 #   CuttingAgent3D:  # Replace with your agent's name
 #     trainer_type: ppo  # Can also use sac or other RL algorithms if needed
