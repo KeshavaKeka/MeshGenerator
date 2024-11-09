@@ -36,7 +36,6 @@ public class CuttingAgent3D : Agent
     {
         base.Initialize();
         
-        // Validate required components
         if (cuttingTool == null)
         {
             Debug.LogError("CuttingAgent3D: Cutting tool reference is missing!");
@@ -48,11 +47,9 @@ public class CuttingAgent3D : Agent
             return;
         }
 
-        // Cache initial transform values
         initialCuttingToolPosition = cuttingTool.position;
         initialCuttingToolRotation = cuttingTool.rotation;
 
-        // Set up event listeners
         cutScript.OnCutCompleted += OnCutCompleted;
         
         isInitialized = true;
@@ -67,16 +64,13 @@ public class CuttingAgent3D : Agent
             return;
         }
 
-        // Reset counters
         stepCount = 0;
         episodeCount++;
         episodeStartTime = Time.time;
 
-        // Reset transforms
         cuttingTool.position = initialCuttingToolPosition;
         cuttingTool.rotation = initialCuttingToolRotation;
 
-        // Reset cut state
         cutScript.ResetCut();
 
         Debug.Log($"Episode {episodeCount} started at time {Time.time}");
@@ -86,23 +80,19 @@ public class CuttingAgent3D : Agent
     {
         if (!isInitialized) return;
 
-        // Tool state observations
         sensor.AddObservation(cuttingTool.position);
         sensor.AddObservation(cuttingTool.rotation);
 
-        // Target points
         Vector3 point1 = cutScript.GetSelectedPoint1();
         Vector3 point2 = cutScript.GetSelectedPoint2();
         sensor.AddObservation(point1);
         sensor.AddObservation(point2);
 
-        // Directional information
         Vector3 toPoint1 = (point1 - cuttingTool.position).normalized;
         Vector3 toPoint2 = (point2 - cuttingTool.position).normalized;
         sensor.AddObservation(toPoint1);
         sensor.AddObservation(toPoint2);
 
-        // Alignment with cut direction
         Vector3 cutDirection = (point2 - point1).normalized;
         float alignment = Vector3.Dot(cuttingTool.forward, cutDirection);
         sensor.AddObservation(alignment);
@@ -120,7 +110,6 @@ public class CuttingAgent3D : Agent
             return;
         }
 
-        // Process movement
         Vector3 movement = new Vector3(
             actions.ContinuousActions[0],
             actions.ContinuousActions[1],
@@ -129,22 +118,18 @@ public class CuttingAgent3D : Agent
 
         cuttingTool.Translate(movement, Space.World);
 
-        // Calculate rewards
         Vector3 point1 = cutScript.GetSelectedPoint1();
         Vector3 point2 = cutScript.GetSelectedPoint2();
         float distanceToLine = PointLineDistance(cuttingTool.position, point1, point2);
 
-        // Reward for staying close to cutting line
         if (distanceToLine < 0.5f)
         {
             float proximityReward = rewardForMoveTowardsPoint * Time.fixedDeltaTime;
             AddReward(proximityReward);
         }
 
-        // Small negative reward to encourage efficiency
         AddReward(-0.001f * Time.fixedDeltaTime);
 
-        // Check for episode timeout
         if (StepCount >= maxStep)
         {
             AddReward(negativeRewardForFailure);
@@ -201,7 +186,6 @@ public class CuttingAgent3D : Agent
 
         var continuousActions = actionsOut.ContinuousActions;
 
-        // Process keyboard input for movement
         float moveX = Input.GetKey(KeyCode.D) ? 1f : Input.GetKey(KeyCode.A) ? -1f : 0f;
         float moveY = Input.GetKey(KeyCode.Q) ? 1f : Input.GetKey(KeyCode.E) ? -1f : 0f;
         float moveZ = Input.GetKey(KeyCode.W) ? 1f : Input.GetKey(KeyCode.S) ? -1f : 0f;
@@ -210,7 +194,6 @@ public class CuttingAgent3D : Agent
         continuousActions[1] = moveY;
         continuousActions[2] = moveZ;
 
-        // Manual cut trigger
         if (Input.GetKeyDown(KeyCode.Space))
         {
             cutScript.ForceCutBetweenPoints();
