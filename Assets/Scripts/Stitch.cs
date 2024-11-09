@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Stitch : MonoBehaviour
 {
+    int ca;
     private Dictionary<int, Vector3> triangleCenters;
     public GameObject interactableObject;
     private bool call;
@@ -27,6 +28,8 @@ public class Stitch : MonoBehaviour
         call = false;
         scr = mesh3.GetComponent<Cut>();
         sw = sword.GetComponent<Sword>();
+        verts = new List<Vector3>();
+        ca = 0;
     }
 
     // Update is called once per frame
@@ -38,13 +41,24 @@ public class Stitch : MonoBehaviour
             GenerateColoredMesh();
             call = true;
         }
+        else if(stit == false && call == true)
+        {
+            call = false;
+            scr.vertices2.Clear();
+        }
     }
 
     void GenerateColoredMesh()
     {
+        ca+=1;
         mesh = new Mesh();
-        verts = scr.vertices2;
-        for(int i = 0;i<verts.Count; i++)
+        int ver = verts.Count;
+        for(int i = 0;i<scr.vertices2.Count;i++)
+        {
+            verts.Add(scr.vertices2[i]);
+        }
+        //verts = scr.vertices2;
+        for(int i = ver;i<verts.Count; i++)
         {
             Debug.Log(verts[i]);
             meshTriangles.Add(i);
@@ -56,7 +70,9 @@ public class Stitch : MonoBehaviour
 
         CacheTriangleCenters();
 
-        MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
+        if(ca == 1)
+        {
+            MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
         meshFilter.mesh = mesh;
 
         MeshRenderer renderer = gameObject.AddComponent<MeshRenderer>();
@@ -67,6 +83,12 @@ public class Stitch : MonoBehaviour
         meshCollider.sharedMesh = mesh;
         meshCollider.convex = true;
         meshCollider.isTrigger = true;
+        }
+        else
+        {
+            //recalculate mesh;
+            mesh.RecalculateNormals();
+        }
     }
 
     private void OnTriggerStay(Collider other)
