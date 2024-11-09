@@ -537,11 +537,11 @@ MonoBehaviour:
   agentParameters:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
-  MaxStep: 500000
+  MaxStep: 3000
   cuttingTool: {fileID: 1502719581}
   cutScript: {fileID: 1924496054}
   isTraining: 1
-  maxStep: 500000
+  maxStep: 3000
   rewardForMoveTowardsPoint: 1
   rewardForSuccessfulCut: 5
   negativeRewardForFailure: -0.2
@@ -572,7 +572,7 @@ MonoBehaviour:
     hasUpgradedBrainParametersWithActionSpec: 1
   m_Model: {fileID: 0}
   m_InferenceDevice: 3
-  m_BehaviorType: 0
+  m_BehaviorType: 1
   m_BehaviorName: CuttingAgent3D
   TeamId: 0
   m_UseChildSensors: 1
@@ -607,13 +607,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Record: 1
   NumStepsToRecord: 0
-<<<<<<< Updated upstream
   DemonstrationName: Anjan_Demos
   DemonstrationDirectory: Assets/NewDemos
-=======
-  DemonstrationName: ab_001
-  DemonstrationDirectory: C:\Users\anura\OneDrive\Desktop\KAALA VR\MeshGenerator\Assets\NewDemos
->>>>>>> Stashed changes
 --- !u!114 &1229784361
 MonoBehaviour:
   m_ObjectHideFlags: 0
