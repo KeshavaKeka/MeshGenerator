@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class Stitch : MonoBehaviour
 {
@@ -48,19 +49,35 @@ public class Stitch : MonoBehaviour
         }
     }
 
+    void UpdateMesh()
+    {
+        mesh.Clear();
+        //mesh.vertices = verts.ToArray();
+        //mesh.triangles = meshTriangles.ToArray();
+        //mesh.colors = meshColors.ToArray();
+        mesh.RecalculateNormals();
+    }
+
     void GenerateColoredMesh()
     {
+        Debug.Log("Colored mesh creation called");
+        Debug.Log(verts.Count);
+        for(int i = 0;i<meshColors.Count;i++)
+        {
+            print(meshColors[i]);
+        }
         ca+=1;
         mesh = new Mesh();
         int ver = verts.Count;
         for(int i = 0;i<scr.vertices2.Count;i++)
         {
+            //Debug.Log(scr.vertices2[i]);
             verts.Add(scr.vertices2[i]);
         }
         //verts = scr.vertices2;
         for(int i = ver;i<verts.Count; i++)
         {
-            Debug.Log(verts[i]);
+            //Debug.Log(verts[i]);
             meshTriangles.Add(i);
             meshColors.Add(cutColor);
         }
@@ -87,7 +104,39 @@ public class Stitch : MonoBehaviour
         else
         {
             //recalculate mesh;
-            mesh.RecalculateNormals();
+            // Check if the components exist and destroy them if they do
+            MeshFilter existingMeshFilter = gameObject.GetComponent<MeshFilter>();
+            if (existingMeshFilter != null)
+            {
+                Destroy(existingMeshFilter);
+            }
+
+            MeshRenderer existingRenderer = gameObject.GetComponent<MeshRenderer>();
+            if (existingRenderer != null)
+            {
+                Destroy(existingRenderer);
+            }
+
+            MeshCollider existingCollider = gameObject.GetComponent<MeshCollider>();
+            if (existingCollider != null)
+            {
+                Destroy(existingCollider);
+            }
+
+            // Now add new components
+            MeshFilter newMeshFilter = gameObject.AddComponent<MeshFilter>();
+            newMeshFilter.mesh = mesh;
+
+            MeshRenderer newRenderer = gameObject.AddComponent<MeshRenderer>();
+            Material mat = new Material(Shader.Find("Custom/VertexColorTransparentShader"));
+            newRenderer.material = mat;
+
+            MeshCollider newMeshCollider = gameObject.AddComponent<MeshCollider>();
+            newMeshCollider.sharedMesh = mesh;
+            newMeshCollider.convex = true;
+            newMeshCollider.isTrigger = true;
+
+            //UpdateMesh();
         }
     }
 
@@ -141,5 +190,6 @@ public class Stitch : MonoBehaviour
 
         // Apply updated colors to the mesh
         mesh.colors = colors;
+        meshColors = colors.ToList();
     }
 }
