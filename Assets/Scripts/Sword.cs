@@ -28,6 +28,7 @@
 
 
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Sword : MonoBehaviour
 {
@@ -36,6 +37,9 @@ public class Sword : MonoBehaviour
     private GameObject currentObject; // Track the currently active object
     private GameObject sword; // Reference to the sword object
     private GameObject knife; // Reference to the knife object
+    public InputActionReference triggerInputActionReference; // Reference to the trigger input action
+    private float triggerValue; // Value of the trigger input
+    
 
     void Start()
     {
@@ -50,9 +54,15 @@ public class Sword : MonoBehaviour
 
     void Update()
     {
-        // Switch between sword and knife when 'C' is pressed
-        if (Input.GetKeyDown(KeyCode.C))
+        // Get the current trigger value (used to switch between sword and knife)
+        triggerValue = triggerInputActionReference.action.ReadValue<float>();
+        print(triggerValue);
+
+        // Switch between sword and knife when trigger is pressed (threshold of 0.9)
+        if (triggerValue > 0.9f) 
         {
+            print("--------------------");
+            print("Switched");
             SwitchControl();
         }
 
