@@ -14,6 +14,7 @@ Shader "Custom/VertexColorTransparentShader"
             // Enable blending for transparency
             Blend SrcAlpha OneMinusSrcAlpha
             ZWrite Off
+            Cull Off // Disable culling (render both sides)
             
             CGPROGRAM
             #pragma vertex vert

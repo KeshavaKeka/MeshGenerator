@@ -10,6 +10,7 @@ public class Stitch : MonoBehaviour
     public GameObject interactableObject;
     private bool call;
     Mesh mesh;
+    public float contactRadius = 0.05f; 
     public Color cutColor;
     public Color mainColor;
     public GameObject mesh3;
@@ -174,7 +175,7 @@ public class Stitch : MonoBehaviour
             Vector3 triangleCenter = entry.Value;
 
             // Check if triangle center is within threshold distance from contact point
-            if (Vector3.Distance(triangleCenter, contactPoint) < 0.5f)
+            if (Vector3.Distance(triangleCenter, contactPoint) < contactRadius)
             {
                 // Only update if this triangle hasn't been colored yet
                 if (!updatedTriangles.Contains(triangleIndex))
