@@ -65,9 +65,18 @@ public class Sword : MonoBehaviour
 
     void Move(GameObject obj)
     {
-        // Get movement input
-        float moveX = Input.GetAxis("Horizontal");
+        // // Get movement input
+        // float moveX = Input.GetAxis("Horizontal");
+        // float moveZ = Input.GetAxis("Vertical");
+
+        
+        // Get mouse movement
+        float mouseX = Input.GetAxis("Mouse X");
+        float mouseY = Input.GetAxis("Mouse Y");  // Using Mouse Y for Z-axis movement
+        
         float moveZ = Input.GetAxis("Vertical");
+
+
 
         float moveY = 0;
         if (Input.GetKey(KeyCode.Q))
@@ -79,8 +88,11 @@ public class Sword : MonoBehaviour
             moveY = -1;
         }
 
+        // // Calculate movement vector
+        // Vector3 move = new Vector3(moveX, moveY, moveZ) * moveSpeed * Time.deltaTime;
+
         // Calculate movement vector
-        Vector3 move = new Vector3(moveX, moveY, moveZ) * moveSpeed * Time.deltaTime;
+        Vector3 move = new Vector3(mouseX, mouseY, moveZ) * moveSpeed * Time.deltaTime;
 
         // Move the current object
         obj.transform.Translate(move, Space.World);
