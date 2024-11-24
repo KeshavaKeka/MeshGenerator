@@ -7,8 +7,8 @@ using UnityEngine;
 [RequireComponent(typeof(MeshFilter))]
 public class Car : MonoBehaviour
 {
-    public string filePathVertices = "Assets/Mesh/meshVertices.txt";
-    public string filePathTriangles = "Assets/Mesh/MeshTriangles.txt";
+    //public string filePathVertices = "Assets/Mesh/meshVertices.txt";
+    //public string filePathTriangles = "Assets/Mesh/MeshTriangles.txt";
     Mesh mesh;
     List<Vector3> vertices;
     List<int> triangles;
@@ -86,12 +86,66 @@ public class Car : MonoBehaviour
         }
     }
 
+    //void CreateShape()
+    //{
+    //    vertices = LoadVerticesFromFile(filePathVertices);
+
+    //    triangles = LoadTrianglesFromFile(filePathTriangles);
+    //}
+
     void CreateShape()
     {
-        vertices = LoadVerticesFromFile(filePathVertices);
+        vertices = new List<Vector3>();
+        triangles = new List<int>();
 
-        triangles = LoadTrianglesFromFile(filePathTriangles);
+        // Sphere parameters
+        int latitudeSegments = 20; // Increase for smoother spheres
+        int longitudeSegments = 20;
+        float radius = 0.5f; // Radius for 1-meter diameter sphere
+
+        // Generate vertices
+        for (int lat = 0; lat <= latitudeSegments; lat++)
+        {
+            float theta = Mathf.PI * lat / latitudeSegments; // Latitude angle
+            float sinTheta = Mathf.Sin(theta);
+            float cosTheta = Mathf.Cos(theta);
+
+            for (int lon = 0; lon <= longitudeSegments; lon++)
+            {
+                float phi = 2 * Mathf.PI * lon / longitudeSegments; // Longitude angle
+                float sinPhi = Mathf.Sin(phi);
+                float cosPhi = Mathf.Cos(phi);
+
+                float x = cosPhi * sinTheta;
+                float y = cosTheta;
+                float z = sinPhi * sinTheta;
+
+                Vector3 vertex = new Vector3(x, y, z) * radius;
+                vertices.Add(vertex);
+            }
+        }
+
+        // Generate triangles
+        for (int lat = 0; lat < latitudeSegments; lat++)
+        {
+            for (int lon = 0; lon < longitudeSegments; lon++)
+            {
+                int current = lat * (longitudeSegments + 1) + lon;
+                int next = current + longitudeSegments + 1;
+
+                // First triangle of quad
+                triangles.Add(current);
+                triangles.Add(next);
+                triangles.Add(current + 1);
+
+                // Second triangle of quad
+                triangles.Add(current + 1);
+                triangles.Add(next);
+                triangles.Add(next + 1);
+            }
+        }
     }
+
 
     void UpdateMesh()
     {
